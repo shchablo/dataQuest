@@ -1,0 +1,52 @@
+#PROGRAM: 
+
+  dataQuest: Life is Endless Analysis. Question is tool.
+--------------------------------------------------------------------------------
+
+#DESCRIPTION:
+
+  Program for any my <Shchablo> analysis.
+--------------------------------------------------------------------------------
+
+#SYNTAX: ./dq --type=[value]
+  1. type=card: ./dq --type=card path/to/card/file 
+                                --[n_1]=[v_2] --[n_2]=[v_2] <...> --[n_N]=[v_N]
+  2. type=args ./dq --type=args 
+                                --[n_1]=[v_2] --[n_2]=[v_2] <...> --[n_N]=[v_N]
+for help execute: ./dq
+
+example:
+  1. type=card: ./dq --type=card cards/study.card --energy[kJ]=12
+  2. type=args ./dq --type=args --A=1 --B=2 --C=3
+--------------------------------------------------------------------------------
+
+#SYSTEM REQUIREMENTS:
+
+  - CMAKE (https://cmake.org/) 
+  - ROOT CERN Library (https://root.cern.ch)
+  - ZLIB Library (https://zlib.net)
+--------------------------------------------------------------------------------
+
+#HOW TO BUILD:
+
+  <Go to dir: modules/FindROOT.cmake, 
+   Change line 17 with your "path/to/yourROOT".>
+  mkdir bin
+  mkdir build
+  cd build
+  cmake .. or sudo cmake ..
+  make or sudo make
+  cd ../bin
+  ./dq --type=...
+--------------------------------------------------------------------------------
+
+#CARDS:
+
+https://drive.google.com/drive/folders/1cU_BFJwJ8RcBuimU3EbEckgHIJ8fm51x?usp=sharing
+--------------------------------------------------------------------------------
+
+#SUPPORT:
+
+  Shchablo@gmail.com
+--------------------------------------------------------------------------------
+
