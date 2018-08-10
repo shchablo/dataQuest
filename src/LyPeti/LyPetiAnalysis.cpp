@@ -19,8 +19,8 @@ LyPetiAnalysis::LyPetiAnalysis()
   _thrTrigers = 1;  
   
   _isWindow = false; _isNoise = false;  
-  _begWindow = 0; _begNoise = 0;  
-  _endWindow = 0; _endNoise = 0;  
+  _begWindowHR = 0; _begWindowLR = 0; _begNoise = 0;  
+  _endWindowHR = 0; _endWindowLR = 0; _endNoise = 0;  
   
   _isBCID = false;  
   _begBCID = 0;  
@@ -28,6 +28,7 @@ LyPetiAnalysis::LyPetiAnalysis()
 
   _isDeadTime = true;
   _deadTime = 375;
+  _numDeadTimeEvents = 0;
 
    _numEffTrigers = 0;
    _numSkipedTrigers = 0;
@@ -54,6 +55,11 @@ LyPetiAnalysis::LyPetiAnalysis()
   _numNoiseHitsHR = 0; _numNoiseHitsLR = 0; _numNoiseHitsOR = 0; _numNoiseHitsAND = 0; _numNoiseHitsCB = 0;
   _noiseUnit = 1;
   _chamberArea = 1;
+
+  _isMinMaxTime = true;
+  _minTime = 0;
+  _maxTime = 0;
+  _isFoundTriger = false;
 }
 LyPetiAnalysis::~LyPetiAnalysis() {
 }
@@ -134,6 +140,13 @@ std::string LyPetiAnalysis::modParamsStr(std::string mod)
 
 bool LyPetiAnalysis::skipEvent() 
 {
+  double thrMin = 0;
+    thrMin = _begNoise;
+
+  if((thrMin < _minTime) && _isMinMaxTime && _isFoundTriger) {
+    _isSkipEvent = true;
+  //std::cout <<std::setprecision(5)  << thrMin << " " << _minTime << "  HRsize:" << _HR.size() << " LRsize" <<  _LR.size() << std::endl;
+  }
   return _isSkipEvent;
 }
 
@@ -204,8 +217,13 @@ bool LyPetiAnalysis::clearEvent()
     if(_isSkipEvent)
       _numSkipedTrigers += 1;
     _isSkipEvent = false;
-    _numNoiseHitsHR += _noiseHR.size(); _numNoiseHitsLR += _noiseLR.size(); 
-    _numNoiseHitsAND += _noiseAND.size();  _numNoiseHitsOR += _noiseOR.size(); _numNoiseHitsCB += _noiseCB.size();
+    
+    _numNoiseHitsHR += _noiseHR.size(); 
+    _numNoiseHitsLR += _noiseLR.size(); 
+    _numNoiseHitsAND += _noiseAND.size();  
+    _numNoiseHitsOR += _noiseOR.size();     
+    _numNoiseHitsCB += _noiseCB.size();
+    
     _numberOfEvents+=1;
     _iHR.clear();_iNoiseHR.clear();
     _iLR.clear();_iNoiseLR.clear();
@@ -219,12 +237,18 @@ bool LyPetiAnalysis::clearEvent()
 
     _isClusterBasic = false; _isNoiseClusterBasic = false;
     _CB.clear(); _noiseCB.clear();
+    
+    
+    _minTime = 0; _maxTime = 0;
+
+    _isFoundTriger = false;
     return true;
 }
 bool LyPetiAnalysis::clearRun()
 {
     _numNoiseHitsHR = 0; _numNoiseHitsLR = 0; _numNoiseHitsOR = 0; _numNoiseHitsAND = 0; _numNoiseHitsCB = 0;
    _numberOfEvents = 0;
+   _numDeadTimeEvents = 0;
    _numEffEventsHR = 0; _numEffNoiseEventsHR = 0;
    _numEffEventsLR = 0; _numEffNoiseEventsLR = 0;
    _numEffEventsOR = 0; _numEffNoiseEventsOR = 0;
@@ -260,7 +284,8 @@ bool LyPetiAnalysis::configure()
   else 
     _numBoards = 0;
   
-    bool isTrigers = this->findParam("triger_is", &_isTrigers);  
+  this->findParam("minMaxTime_is", &_isMinMaxTime);  
+  bool isTrigers = this->findParam("triger_is", &_isTrigers);  
   if(isTrigers) {
     double thrTrigers = 0;
     bool isTrigers = this->findParam("triger_thr", &thrTrigers);
@@ -271,8 +296,14 @@ bool LyPetiAnalysis::configure()
   
   bool isWindow = this->findParam("window_is", &_isWindow);  
   if(isWindow) {
-    bool isBegWindow = this->findParam("window_beg", &_begWindow);  
-    bool isEndWindow = this->findParam("window_end", &_endWindow);
+    bool isBegWindow = this->findParam("windowLR_beg", &_begWindowLR);  
+    bool isEndWindow = this->findParam("windowLR_end", &_endWindowLR);
+    if(!isBegWindow || !isEndWindow)
+      return false;  
+  }  
+  if(isWindow) {
+    bool isBegWindow = this->findParam("windowHR_beg", &_begWindowHR);  
+    bool isEndWindow = this->findParam("windowHR_end", &_endWindowHR);
     if(!isBegWindow || !isEndWindow)
       return false;  
   }  
@@ -328,14 +359,12 @@ bool LyPetiAnalysis::configure()
   _filters = "";
   std::stringstream ss;
   std::cout.precision(1); 
-  if(_isTrigers)
-    _filters += "&trigsThr_" + std::to_string(_thrTrigers);
-  if(_isWindow) {
-    ss << std::fixed << std::setprecision(2) << "&window_" << _begWindow << "_" << _endWindow << "ns";
-  }
-  if(_isBCID) {
-    ss << std::fixed << std::setprecision(2) << "&BCID_" << _begBCID << "_" << _endBCID;
-  }
+  //if(_isWindow) {
+  //  ss << std::fixed << std::setprecision(2) << "&window_" << _begWindow << "_" << _endWindow << "ns";
+  //}
+  //if(_isBCID) {
+  //  ss << std::fixed << std::setprecision(2) << "&BCID_" << _begBCID << "_" << _endBCID;
+  //}
   _filters += ss.str();
   
 
@@ -354,8 +383,8 @@ bool LyPetiAnalysis::filters(std::string radius, unsigned int js, unsigned int j
     results.push_back(this->triger(js));
   if(_isWindow && _isTrigers)
     results.push_back(this->window(radius, js, jr));
-  if(_isBCID)
-    results.push_back(this->BCID(radius, js, jr));
+ // if(_isBCID)
+ //   results.push_back(this->BCID(radius, js, jr));
 
   bool result = true;
   if(results.size() == 0)
@@ -371,12 +400,12 @@ bool LyPetiAnalysis::triger(unsigned int js)
   bool result = false;
   if(_strips->at(js).trigs.size() <= (unsigned int)_thrTrigers && _strips->at(js).trigs.size() > 0)
     result = true;
-  else
-    _isSkipEvent = true;
   return result;
 }
 bool LyPetiAnalysis::window(std::string radius, unsigned int js, unsigned int jr) 
 {
+  double begWindow = 0;
+  double endWindow = 0;
   std::string name = _parser->last(radius);
   std::string param = _parser->first(radius);
   double dTime = 0; 
@@ -387,14 +416,20 @@ bool LyPetiAnalysis::window(std::string radius, unsigned int js, unsigned int jr
     trigTime = (double)_strips->at(js).trigs.at(0)->time;
   
   if(name == "HR") {
-    if(_strips->at(js).HR.size() > jr && _strips->size() > js)
+    begWindow = _begWindowHR;
+    endWindow = _endWindowHR;
+    if(_strips->at(js).HR.size() > jr && _strips->size() > js) {
       hitTime = (double)_strips->at(js).HR.at(jr)->time; 
+    }
     else
       return false;    
   }
   else if(name == "LR") {
-    if(_strips->at(js).LR.size() > jr && _strips->size() > js)
+    begWindow = _begWindowLR;
+    endWindow = _endWindowLR;
+    if(_strips->at(js).LR.size() > jr && _strips->size() > js) {
       hitTime = (double)_strips->at(js).LR.at(jr)->time;
+    }
     else
       return false; 
   }
@@ -402,19 +437,24 @@ bool LyPetiAnalysis::window(std::string radius, unsigned int js, unsigned int jr
     return false; 
     
   dTime = hitTime - trigTime;
+  if((dTime < _minTime) && _isMinMaxTime)
+    _minTime = dTime;
+  if((dTime > _maxTime) && _isMinMaxTime)
+    _maxTime = dTime;
   if((param == "noise") && _begNoise <= dTime && _endNoise >= dTime)  
     return true;
-  else if((param == "data") && _begWindow <= dTime && _endWindow >= dTime)  
+  else if((param == "data") && begWindow <= dTime && endWindow >= dTime)  
     return true;
-  else if((param == "deadTime") && _begWindow - _deadTime <= dTime && _begWindow > dTime) {  
-    if(_isDeadTime)
-      _isSkipEvent = true;
-    return true;
-  }
+  //else if((param == "deadTime") && _begWindow - _deadTime <= dTime && _begWindow > dTime) {  
+  //  if(_isDeadTime)
+  //    _isSkipEvent = true;
+  //  return false;
+  //}
   return false;
 }
 bool LyPetiAnalysis::BCID(std::string radius, unsigned int js, unsigned int jr) 
 {
+  // не правильно
    std::string name = _parser->last(radius);
   double BCID = 0;
   if(name == "HR") {
@@ -425,9 +465,11 @@ bool LyPetiAnalysis::BCID(std::string radius, unsigned int js, unsigned int jr)
   }
   else
     return false;
-    
   if(_begBCID <= BCID && _endBCID >= BCID)  
     return true;
+  else
+    _isSkipEvent = true;
+
 
   return false;
 }
@@ -468,31 +510,31 @@ bool LyPetiAnalysis::efficiency(double* eff, double* eEff, std::string mod)
 {
   std::string name = _parser->last(mod);
   std::string param = _parser->last(mod);
-  double windowFactor = std::abs(_endNoise - _begNoise)/std::abs(_endWindow - _begWindow);
+  double windowFactor = 0;
   double events = 0;
   double noise = 0;
-  double trigers = _numEffTrigers - _numSkipedTrigers;
-  double noiseTrigers = _numEffTrigers;
+  double trigers = _numEffTrigers -_numSkipedTrigers;
+  double noiseTrigers = _numEffTrigers - _numSkipedTrigers;
   if(name == "HR") {
       events = _numEffEventsHR;
       noise = _numEffNoiseEventsHR;
-      windowFactor = (std::abs(_endNoise - _begNoise) - _numNoiseHitsHR*_deadTime)/std::abs(_endWindow - _begWindow);
+      windowFactor = (std::abs(_endNoise - _begNoise))/std::abs(_endWindowHR - _begWindowHR);
   } else if(name == "LR") {
       events = _numEffEventsLR;
       noise = _numEffNoiseEventsLR;
-      windowFactor = (std::abs(_endNoise - _begNoise) - _numNoiseHitsLR*_deadTime)/std::abs(_endWindow - _begWindow);
+      windowFactor = (std::abs(_endNoise - _begNoise))/std::abs(_endWindowLR - _begWindowLR);
   } else if(name == "OR") {
       events = _numEffEventsOR;
-      noise = _numEffNoiseEventsOR;
-      windowFactor = (std::abs(_endNoise - _begNoise) - _numNoiseHitsOR*_deadTime)/std::abs(_endWindow - _begWindow);
+
+      windowFactor = (std::abs(_endNoise - _begNoise))/std::abs((_endWindowHR + _endWindowLR)/2 - (_begWindowHR+_begWindowLR)/2);
   } else if(name == "AND") {
       events = _numEffEventsAND;
       noise = _numEffNoiseEventsAND;
-      windowFactor = (std::abs(_endNoise - _begNoise) - _numNoiseHitsAND*_deadTime)/std::abs(_endWindow - _begWindow);
+      windowFactor = (std::abs(_endNoise - _begNoise))/std::abs((_endWindowHR+_endWindowLR)/2 - (_begWindowHR+_begWindowLR)/2);
   } else if(name == "CB") {
       events = _numEffEventsCB;
       noise = _numEffNoiseEventsCB;
-      windowFactor = (std::abs(_endNoise - _begNoise) - _numNoiseHitsCB*_deadTime)/std::abs(_endWindow - _begWindow);
+      windowFactor = (std::abs(_endNoise - _begNoise))/std::abs((_endWindowHR+_endWindowLR)/2 - (_begWindowHR+_begWindowLR)/2);
   } 
   else 
     return false;
@@ -503,16 +545,20 @@ bool LyPetiAnalysis::efficiency(double* eff, double* eEff, std::string mod)
 
   double efficiency = (events)/trigers; 
   double eEfficiency = std::sqrt((efficiency*(1-efficiency)))/std::sqrt(trigers);
-  windowFactor = std::abs(_endNoise - _begNoise)/std::abs(_endWindow - _begWindow);
   double effNoise = (noise/windowFactor)/noiseTrigers;
   double eEffNoise = std::sqrt((effNoise*(1-effNoise)))/std::sqrt(trigers);
   *eff = efficiency;
   *eEff = eEfficiency;
   if(_isNoise) {
-    *eff = efficiency - effNoise;
+    *eff = (efficiency - effNoise)/(1-effNoise);
+    //std::cout << std::setprecision(5) << events << " " << trigers << " " << efficiency << " " << effNoise << std::endl; 
     *eEff = eEfficiency + eEffNoise;
   }
-
+  if(trigers < 0 || events < 0) {
+    *eff = 0;
+    *eEff = 0;
+  }
+    
 
   //----
   return true;
@@ -612,7 +658,7 @@ bool LyPetiAnalysis::noise(double* n, double* eN, std::string mod)
   std::string name = _parser->last(mod);
   std::string param = _parser->first(mod);
   double noise = 0;
-  double trigers = _numEffTrigers;
+  double trigers = _numEffTrigers - _numSkipedTrigers;
   if(name == "HR")
       noise = _numNoiseHitsHR;
   else if(name == "LR")
@@ -630,10 +676,11 @@ bool LyPetiAnalysis::noise(double* n, double* eN, std::string mod)
     return false;
   //----
   if(trigers != 0) {
-    if(noise*_deadTime < std::abs(_endNoise-_begNoise)*trigers) 
-      *n = noise/(((std::abs(_endNoise-_begNoise))*trigers - noise*_deadTime)*_noiseUnit*_chamberArea);
-    else 
-      *n = -100;
+   // if(noise*_deadTime < std::abs(_endNoise-_begNoise)*trigers) 
+   //   *n = noise/(((std::abs(_endNoise-_begNoise))*trigers - noise*_deadTime)*_noiseUnit*_chamberArea);
+      *n = noise/(((std::abs(_endNoise-_begNoise))*trigers)*_noiseUnit*_chamberArea);
+   // else 
+   //   *n = -100;
   }
   else
     *n = 0;
@@ -659,7 +706,7 @@ bool LyPetiAnalysis::eventFraction(double* fraction, std::string mod)
 
   std::string name = _parser->last(mod);
   if(name == "CB") {
-    *fraction = (double)_badCluster/((double)_numEffTrigers-(double)_numSkipedTrigers);
+    *fraction = (double)_badCluster/((double)_numEffTrigers); // -(double)_numSkipedTrigers);
     result = true;
   }
   return result;
@@ -672,28 +719,80 @@ bool LyPetiAnalysis::offSetTime(std::vector<std::pair<double, double>>* data,
   std::string param = _parser->first(mod);
   if((name == "HR" || name == "LR" || name == "AND") && param == "offset") {
     //std::cout << name << " " << param << std::endl; 
+    
+    unsigned int refS = 1028;
+    unsigned int refS1 = 1020;
+    unsigned int refS2 = 1030;
+    std::map<int, std::map<int, std::vector<double>>> strips;
+    std::map<int, std::vector<double>> strip;
+    for(unsigned int s = refS1; s <= refS2; s++) {
       
-    int refStrip = 1020;
-    double refTime = 0;
-
-    int count = 0;
-    for(unsigned int i = 0; i < data->size(); i++) {
-      if(data->at(i).first == refStrip) {
-        count += 1;
-        refTime = data->at(i).second;
+      double refTime = 0;
+      int count = 0;
+      for(unsigned int i = 0; i < data->size(); i++) {
+        if(data->at(i).first == s) {
+          count += 1;
+          refTime = data->at(i).second;
+        }
       }
+      if(count != 1)
+        continue;
+      
+      for(unsigned int i = 0; i < data->size(); i++) {
+        auto it = output->find(data->at(i).first);
+        if(it == output->end())
+          strip.insert(std::make_pair(data->at(i).first, std::vector<double>{data->at(i).second - refTime}));
+        strip.find(data->at(i).first)->second.push_back(data->at(i).second - refTime);
+       // std::cout << std::setprecision(9) << data->at(i).first << " " << data->at(i).second << " " <<  refTime << std::endl; 
+      }
+      strips.insert(std::make_pair(s, strip));
     }
-    if(count != 1)
-      return false;
+     for(auto& s: strips) {
+      double sum = 0;
+      for(unsigned int sl = s.first; sl < refS; sl++) {
+        if(strips.find(sl)->second.find(sl+1)->second.size() > 0) {
+          double closest = strips.find(sl)->second.find(sl+1)->second.at(0);
+          for(unsigned int t = 0; t < strips.find(sl)->second.find(sl+1)->second.size(); t++) {
+            if(closest > strips.find(sl)->second.find(sl+1)->second.at(t))
+              closest = strips.find(sl)->second.find(sl+1)->second.at(t);
+          }
+          sum +=  closest;
+        }
+      }
+      for(unsigned int sh = s.first; sh > refS; sh--) {
+        if(strips.find(sh)->second.find(sh-1)->second.size() > 0) {
+          double closest = strips.find(sh)->second.find(sh+1)->second.at(0);
+          for(unsigned int t = 0; t < strips.find(sh)->second.find(sh+1)->second.size(); t++) {
+            if(closest > strips.find(sh)->second.find(sh+1)->second.at(t))
+              closest = strips.find(sh)->second.find(sh+1)->second.at(t);
+          }
+            sum += closest;
+        }
+      }
+      output->insert(std::make_pair(s.first, std::vector<double>{sum}));
+    }
+    return true;
+    //int refStrip = 1020;
+    //double refTime = 0;
 
-    for(unsigned int i = 0; i < data->size(); i++) {
-      auto it = output->find(data->at(i).first);
-      if(it == output->end())
-        output->insert(std::make_pair(data->at(i).first, std::vector<double>{data->at(i).second - refTime}));
-      output->find(data->at(i).first)->second.push_back(data->at(i).second - refTime);
-     // std::cout << std::setprecision(9) << data->at(i).first << " " << data->at(i).second << " " <<  refTime << std::endl; 
-    }
-  return true;
+    //int count = 0;
+    //for(unsigned int i = 0; i < data->size(); i++) {
+    //  if(data->at(i).first == refStrip) {
+    //    count += 1;
+    //    refTime = data->at(i).second;
+    //  }
+    //}
+    //if(count != 1)
+    //  return false;
+
+    //for(unsigned int i = 0; i < data->size(); i++) {
+    //  auto it = output->find(data->at(i).first);
+    //  if(it == output->end())
+    //    output->insert(std::make_pair(data->at(i).first, std::vector<double>{data->at(i).second - refTime}));
+    //  output->find(data->at(i).first)->second.push_back(data->at(i).second - refTime);
+    // // std::cout << std::setprecision(9) << data->at(i).first << " " << data->at(i).second << " " <<  refTime << std::endl; 
+    //}
+    //return true;
   }
   else 
     return false;
@@ -775,6 +874,31 @@ bool LyPetiAnalysis::clusterSize(std::vector<int>* sizes, std::string mod)
     return false;
   return true;
 }
+
+bool LyPetiAnalysis::minTime(double* time, std::string mod) 
+{
+  std::string name = _parser->last(mod);
+  bool result = false;
+  if(name == "HR" || name == "LR") {
+    *time = _minTime;
+    result = true;
+  }
+  else
+    result = false;
+    return result;
+}
+bool LyPetiAnalysis::maxTime(double* time, std::string mod) 
+{
+  std::string name = _parser->last(mod);
+  bool result = false;
+  if(name == "HR" || name == "LR") {
+    *time = _maxTime;
+    result = true;
+  }
+  else
+    result = false;
+    return result;
+}
 //------------------------------------------------------------------------------
 
 /* Fill data */ 
@@ -784,7 +908,10 @@ bool LyPetiAnalysis::fillTrigers(int numBoards)
 	if(_numBoards == numBoards) {
    _numEffTrigers += 1;
 	 result = true;
+    _isFoundTriger = true;
 	}
+  else
+    _isFoundTriger = false;
   return result; 
 }
 bool LyPetiAnalysis::fillEvents(std::string radius, unsigned int js, unsigned int jr) 
@@ -815,7 +942,7 @@ bool LyPetiAnalysis::choiceDataFill(std::string param)
     if(param == "data") {
       this->dataFillHR(&_iHR, &_HR, false, false);
       this->dataFillLR(&_iLR, &_LR, false);
-      this->dataFillAndOr(&_OR, &_AND);
+      this->dataFillAndOr(&_iHR, &_iLR, &_OR, &_AND);
       _isStripsFill = true;
       result = true;
     }
@@ -824,7 +951,7 @@ bool LyPetiAnalysis::choiceDataFill(std::string param)
     if(param == "noise") {
       this->dataFillHR(&_iNoiseHR, &_noiseHR, false, false);
       this->dataFillLR(&_iNoiseLR, &_noiseLR, false);
-      this->dataFillAndOr(&_noiseOR, &_noiseAND);
+      this->dataFillAndOr( &_iNoiseHR, &_iNoiseLR, &_noiseOR, &_noiseAND);
       _isNoiseFill = true;
       result = true;
     }
@@ -855,7 +982,9 @@ bool LyPetiAnalysis::dataFillHR(std::vector<std::pair<int, int>>* iHR,
       time = time*_strips->at(iHR->at(ih).first).inverse;
     else
       time = time;
-    output->push_back(std::pair<double, double>((double)numStrip, time));
+
+    if(_strips->at(iHR->at(ih).first).inverse != 0)
+      output->push_back(std::pair<double, double>((double)numStrip, time));
   }
   return true;
 }
@@ -874,29 +1003,32 @@ bool LyPetiAnalysis::dataFillLR(std::vector<std::pair<int, int>>* iLR,
       time = time*_strips->at(iLR->at(il).first).inverse;
     else
       time = time;
-    output->push_back(std::pair<double, double>((double)numStrip, time));
+    if(_strips->at(iLR->at(il).first).inverse != 0)
+      output->push_back(std::pair<double, double>((double)numStrip, time));
   }
   return true;
 }
-bool LyPetiAnalysis::dataFillAndOr(std::vector<std::pair<double, double>>* OR, 
+bool LyPetiAnalysis::dataFillAndOr(std::vector<std::pair<int, int>>* iHR,
+                                   std::vector<std::pair<int, int>>* iLR,
+                                   std::vector<std::pair<double, double>>* OR, 
                                    std::vector<std::pair<double, double>>* AND) 
 {
     std::vector<std::pair<double, double>> HR;
     std::vector<std::pair<double, double>> LR;
     if(_isTimeOffset) {
-      this->dataFillHR(&_iHR, &HR, true, true);
-      this->dataFillLR(&_iLR, &LR, true);
+      this->dataFillHR(iHR, &HR, true, true);
+      this->dataFillLR(iLR, &LR, true);
     }
     else {
-      this->dataFillHR(&_iHR, &HR, true, false);
-      this->dataFillLR(&_iLR, &LR, true);
+      this->dataFillHR(iHR, &HR, true, false);
+      this->dataFillLR(iLR, &LR, true);
     }
     this->sortAndResize(&HR, &LR);
     for(unsigned int i = 0; i < HR.size(); i++) {
       for(unsigned int j = 0; j < LR.size(); j++) {
-        if(HR.at(i).first == LR.at(j).first) {
+        if(HR.at(i).first == LR.at(j).first ) {
           for(unsigned int l = 0; l < LR.size(); l++) {
-            if(LR.at(j).second - HR.at(i).second > LR.at(l).second - HR.at(i).second)
+            if(std::abs(LR.at(j).second - HR.at(i).second) > std::abs(LR.at(l).second - HR.at(i).second))
               std::swap(LR[j],  LR[l]);
           }
           double time = HR.at(i).second - LR.at(j).second;
@@ -958,19 +1090,21 @@ bool LyPetiAnalysis::clusterBasic(std::vector<std::pair<double, double>> data, s
 {
 //  for(unsigned int i = 0; i < _clusterMask.size(); i++)
 //    data.push_back(std::pair<double, double>(_clusterMask.at(i), 0));
-	  
+    bool isDead = false;
+    std::vector<int> deadStrips = {36, 1001, 1006, 1011, 1013, 1017, 1037, 1043};
     double timeThr = _timeThrCB; 
     std::sort(data.begin(), data.end(), [](auto &left, auto &right) {
       return std::abs(left.first) < std::abs(right.first);
 	  });
 
-  //  if(data.size() > 0)
-  //  std::cout << "data: ";
-  //    for(unsigned int i = 0; i < data.size(); i++)
-  //      std::cout << (int)data.at(i).first << "|" << data.at(i).second << " ";
-  //  if(data.size() > 0)
-  //    std::cout << std::endl;
-//   if(data.size() <= 7) {
+    //if(data.size() > 0)
+    //std::cout << "data: ";
+    //  for(unsigned int i = 0; i < data.size(); i++)
+    //    std::cout << (int)data.at(i).first << "|" << data.at(i).second << " ";
+    //if(data.size() > 0)
+    //  std::cout << std::endl;
+   
+//    if(data.size() <= 7) {
       std::vector<std::pair<double, double>> strips;
       int iCluster = 0;
       while(data.size() > 0) {
@@ -979,16 +1113,29 @@ bool LyPetiAnalysis::clusterBasic(std::vector<std::pair<double, double>> data, s
         strips.push_back(std::pair<double, double>(data.at(0).first, data.at(0).second));
         data.erase(data.begin());
         for(unsigned int i = 0; i < data.size(); i++) {
-          if((data.at(i).first == (strips.back().first + 1)) && std::abs(data.at(i).second - strips.back().second) <= timeThr) {
-            strips.push_back(std::pair<double, double>(data.at(i).first, data.at(i).second));
+          isDead = false;
+          for(unsigned int ds = 0; ds < deadStrips.size(); ds++) {
+            if((strips.back().first + 1) == deadStrips.at(ds))
+              isDead = true;
+          }
+          if(isDead) {
+            strips.push_back(std::pair<double, double>((strips.back().first + 1), strips.back().second));
             indexes.push_back(i);
+          }
+          else {
+            if((data.at(i).first == (strips.back().first + 1)) && std::abs(data.at(i).second - strips.back().second) <= timeThr) {
+              strips.push_back(std::pair<double, double>(data.at(i).first, data.at(i).second));
+              indexes.push_back(i);
+            }
           }
         }
         cluster.size = strips.size();
-      //  std::cout  << "cluster: ";
-      //  for(unsigned int i = 0; i < strips.size(); i++)
-      //    std::cout  << (int)strips.at(i).first << "|" << strips.at(i).second << " ";
-      //  std::cout << std::endl;
+        
+        //std::cout  << "cluster: ";
+        //for(unsigned int i = 0; i < strips.size(); i++)
+        //  std::cout  << (int)strips.at(i).first << "|" << strips.at(i).second << " ";
+        //std::cout << std::endl;
+        //
         if(cluster.size > 0) {
           cluster.centralStrip = (int)strips.at(this->centralStrip(&strips)).first;
           cluster.centralTime = strips.at(this->centralStrip(&strips)).second;
@@ -1007,8 +1154,8 @@ bool LyPetiAnalysis::clusterBasic(std::vector<std::pair<double, double>> data, s
 //       cluster.centralStrip = -1;
 //       cluster.centralTime = 0;
 //       output->insert(std::make_pair(1, cluster));
-//      _badCluster+=1;
-//   }
+//      _badCluster+=1;  
+//      }
   return true;
 }
 int LyPetiAnalysis::centralStrip(std::vector<std::pair<double, double>>* strips) 
@@ -1017,9 +1164,9 @@ int LyPetiAnalysis::centralStrip(std::vector<std::pair<double, double>>* strips)
   if(size == 0)
     return 0;
   else if(size%2 == 1)
-     return (size/2 + 1) - 1;
+    return (size/2 + 1) - 1;
   else if(size%2 == 0)
-     return (size/2) - 1;
+    return (size/2) - 1;
   return 0;
 }
 

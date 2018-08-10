@@ -75,6 +75,8 @@ public:
   bool clusterBasicMultiplicity(int* mult, std::string mod);
   bool clusterSize(std::vector<int>* sizes, std::string mod);
   bool eventFraction(double* fraction, std::string mod);
+  bool minTime(double* time, std::string mod); 
+  bool maxTime(double* time, std::string mod); 
   //----------------------------------------------------------------------------
 
   bool isOffSet(std::string mod);
@@ -86,8 +88,10 @@ public:
                                 std::vector<std::pair<double, double>>* output, bool inverse, bool isOffSet); 
   bool dataFillLR(std::vector<std::pair<int, int>>* iLR,
              std::vector<std::pair<double, double>>* output, bool inverse);
-  bool dataFillAndOr(std::vector<std::pair<double, double>>* OR, 
-                     std::vector<std::pair<double, double>>* AND);
+  bool dataFillAndOr(std::vector<std::pair<int, int>>* iHR,
+                                   std::vector<std::pair<int, int>>* iLR,
+                                   std::vector<std::pair<double, double>>* OR, 
+                                   std::vector<std::pair<double, double>>* AND); 
   //----------------------------------------------------------------------------
   bool clusterBasicAlgos();
   
@@ -147,6 +151,7 @@ protected:
   
   int _numEffTrigers;
   int _numSkipedTrigers;
+  int _numDeadTimeEvents;
 
   int _numEffEventsHR; int _numEffNoiseEventsHR;
   int _numEffEventsLR; int _numEffNoiseEventsLR;
@@ -154,6 +159,7 @@ protected:
   int _numEffEventsAND; int _numEffNoiseEventsAND;
   
   // data for basicClustering
+  bool _isMinMaxTime; double _minTime;  double _maxTime; 
 	double _timeThrCB; 
   int _numEffEventsCB; int _numEffNoiseEventsCB;
   int _goodCluster;  int _badCluster;
@@ -164,12 +170,15 @@ protected:
   // data for filters
   bool _isAll;  
   
+  bool _isFoundTriger;  
   bool _isTrigers;  
   int _thrTrigers;  
   
   bool _isWindow;  
-  double _begWindow;  
-  double _endWindow;  
+  double _begWindowHR;  
+  double _endWindowHR;  
+  double _begWindowLR;  
+  double _endWindowLR;  
   
   bool _isNoise;  
   double _begNoise;  

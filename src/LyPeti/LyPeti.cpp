@@ -902,12 +902,11 @@ bool LyPeti::analysis()
     bool isAnalysis = analysis.find(chamber)->second.configure();
     
     //if(isOffSet) {
-    //}
- //   std::map<int, double> offsets; std::map<int, double> offsetsHR; std::map<int, double> offsetsLR;
- //   this->offSet(chamber, 741495, &offsets, &offsetsHR, &offsetsLR, &TGEs, &dataRoot);
- //   event.setTimeOffSetHR(&offsetsHR); 
- //   event.setTimeOffSetLR(&offsetsLR);
- //   event.setTimeOffSet(&offsets);
+    //std::map<int, double> offsets; std::map<int, double> offsetsHR; std::map<int, double> offsetsLR;
+    //this->offSet(chamber, 741495, &offsets, &offsetsHR, &offsetsLR, &TGEs, &dataRoot);
+    //event.setTimeOffSetHR(&offsetsHR); 
+    //event.setTimeOffSetLR(&offsetsLR);
+    //event.setTimeOffSet(&offsets);
     if(!isAnalysis) {
     	_log += " ERROR: Can't configure analysis for chamber: " + std::to_string(chamber) + "!" + _rowDelimiter;
 			return false;
@@ -1077,6 +1076,18 @@ bool LyPeti::analysis()
                 itTH2s->second.setting(data.at(jd).second, data.at(jd).first);
               }
               
+              double minTime = 0; bool isMinTime = analysis.find(chamber)->second.minTime(&minTime, mods.at(im).c_str());
+              if(isMinTime) {
+                nameTH1s = Form("%d%s%s%s%sminTime", chamber, filters.c_str(), modParams.c_str(), strDelim.c_str(), mods.at(im).c_str()); 
+                itTH1s = dataRoot.addDqTH1D(nameTH1s, &TH1s); itTH1s->second.config(nameTH1s, &_params);
+                itTH1s->second.setting(minTime);
+              }
+              double maxTime = 0; bool isMaxTime = analysis.find(chamber)->second.maxTime(&maxTime, mods.at(im).c_str());
+              if(isMaxTime) {
+                nameTH1s = Form("%d%s%s%s%smaxTime", chamber, filters.c_str(), modParams.c_str(), strDelim.c_str(), mods.at(im).c_str()); 
+                itTH1s = dataRoot.addDqTH1D(nameTH1s, &TH1s); itTH1s->second.config(nameTH1s, &_params);
+                itTH1s->second.setting(maxTime);
+              }
               int mult = 0; bool isMult = analysis.find(chamber)->second.multiplicity(&mult, mods.at(im).c_str());
               if(isMult) {
                 nameTH1s = Form("%d%s%s%s%smultiplicity", chamber, filters.c_str(), modParams.c_str(), strDelim.c_str(), mods.at(im).c_str()); 
@@ -1256,6 +1267,16 @@ bool LyPeti::analysis()
                 nameTH2s = Form("%d%s%s%s%sstripTimeProfile", chamber, filters.c_str(), modParams.c_str(), strDelim.c_str(), mods.at(im).c_str()); 
                 TH2s.find(nameTH2s.c_str())->second.Fill(data.at(jd).second, data.at(jd).first);
               }
+              double minTime = 0; bool isMinTime = analysis.find(chamber)->second.minTime(&minTime, mods.at(im).c_str());
+              if(isMinTime) {
+                nameTH1s = Form("%d%s%s%s%sminTime", chamber, filters.c_str(), modParams.c_str(), strDelim.c_str(), mods.at(im).c_str()); 
+                TH1s.find(nameTH1s.c_str())->second.Fill(minTime);
+              }
+              double maxTime = 0; bool isMaxTime = analysis.find(chamber)->second.maxTime(&maxTime, mods.at(im).c_str());
+              if(isMaxTime) {
+                nameTH1s = Form("%d%s%s%s%smaxTime", chamber, filters.c_str(), modParams.c_str(), strDelim.c_str(), mods.at(im).c_str()); 
+                TH1s.find(nameTH1s.c_str())->second.Fill(maxTime);
+              }
               int mult = 0; bool isMult = analysis.find(chamber)->second.multiplicity(&mult, mods.at(im).c_str());
               if(isMult) {
                 nameTH1s = Form("%d%s%s%s%smultiplicity", chamber, filters.c_str(), modParams.c_str(), strDelim.c_str(), mods.at(im).c_str()); 
@@ -1382,7 +1403,9 @@ bool LyPeti::analysis()
 
       std::string histName = parser.histName(profiles.first);
       std::string comment = this->findParam("comment", &_params);
-      std::string path = Form("%s_%s/param_%.2f%srun_%d/chamber_%d", comment.c_str(), logRunNumber.c_str(), value, strDelim.c_str(), runs.at(r), chamberNum); 
+        std::string path = Form("%s_%s/param_%.2f%srun_%d/chamber_%d", comment.c_str(), logRunNumber.c_str(), value, strDelim.c_str(), runs.at(r), chamberNum); 
+      if(comment == "webdcs")
+        path = Form("param_%.2f%srun_%d/chamber_%d", value, strDelim.c_str(), runs.at(r), chamberNum); 
       std::string folder = "";
       bool isFolder = this->findParam((histName + "_path"), &folder, &_params);
       if(isFolder)
@@ -1406,6 +1429,8 @@ bool LyPeti::analysis()
       std::string histName = parser.histName(profiles.first);
       std::string comment = this->findParam("comment", &_params);
       std::string path = Form("%s_%s/param_%.2f%srun_%d/chamber_%d", comment.c_str(), logRunNumber.c_str(), value, strDelim.c_str(), runs.at(r), chamberNum); 
+      if(comment == "webdcs")
+        path = Form("param_%.2f%srun_%d/chamber_%d", value, strDelim.c_str(), runs.at(r), chamberNum); 
       std::string folder = "";
       bool isFolder = this->findParam((histName + "_path"), &folder, &_params);
       if(isFolder)
@@ -1423,10 +1448,12 @@ bool LyPeti::analysis()
  		profiles.second->sortByX(); 
     profiles.second->plot();
 		//std::cout << profiles.first << std::endl;
-    //profiles.second->print();
+    //profiles.second->print("sigmoid");
     std::string histName = parser.histName(profiles.first);
     std::string comment = this->findParam("comment", &_params);
     std::string path = comment + "_" + logRunNumber + "/analysis/chamber_" + parser.chamberName(profiles.first); 
+    if(comment == "webdcs")
+      path = "analysis/chamber_" + parser.chamberName(profiles.first); 
     std::string folder = "";
     bool isFolder = this->findParam((histName + "_path"), &folder, &_params);
     if(isFolder)
