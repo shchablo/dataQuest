@@ -54,6 +54,12 @@ int LyPeti::numRun(std::string file)
   std::string name;
   name = parser.fileName(file);
   parser.deleteFormat(&name);
+		try {
+    	file.find_last_of("_");
+		}
+		catch(std::invalid_argument& e) {
+			return 0;
+		}
   std::size_t found = file.find_last_of("_");
   result = stoi(file.substr(found + 1));
   
@@ -400,31 +406,21 @@ bool LyPeti::offSet(int chamber, int offSetRun,
             std::map<int, std::vector<double>> offSet;
             
             // offset
-            bool isOffSet = analysis.find(chamber)->second.offSetTime(&data, &offSet, mods.at(im).c_str());
-            if(isOffSet) {
-              for(auto& itOffSet: offSet) {
-                nameTH1s = Form("%d%s%s%s_%d_%s%stimeProfileStrip", chamber, filters.c_str(), modParams.c_str(), strDelim.c_str(),  itOffSet.first, strDelim.c_str(),  mods.at(im).c_str()); 
-                itTH1s = dataRoot->addDqTH1D(nameTH1s, &TH1s); itTH1s->second.config(nameTH1s, &_params);
-                for(unsigned int iOs = 0; iOs < itOffSet.second.size(); iOs++)
-                  itTH1s->second.setting(itOffSet.second.at(iOs));
+            for(unsigned int d = 0; d < data.size(); d++) {
+              std::vector<std::pair<double, double>> dataAND = analysis.find(chamber)->second.data("AND");
+              bool isOffSet = analysis.find(chamber)->second.offSetTime(data.at(d).first, &data, &dataAND, &offSet, mods.at(im).c_str());
+              if(isOffSet) {
+                nameTH2s = Form("%d%s%s%s_%d_%s%stimeProfileStrip", chamber, filters.c_str(), modParams.c_str(), strDelim.c_str(),  (int)data.at(d).first, strDelim.c_str(),  mods.at(im).c_str()); 
+                for(auto& itOffSet: offSet) {
+                  itTH2s = dataRoot->addDqTH2D(nameTH2s, &TH2s); itTH2s->second.config(nameTH2s, &_params);
+                  for(unsigned int iOs = 0; iOs < itOffSet.second.size(); iOs++) {
+                    itTH2s->second.setting(itOffSet.second.at(iOs), itOffSet.first);
+                  //  std::cout << itOffSet.first << " " << itOffSet.second.at(iOs) << std::endl;
+                  }
+                }
               }
             }
             // ---
-            
-            for(unsigned int jd = 0; jd < data.size(); jd++) { 
-              nameTH1s = Form("%d%s%s%s%sstripProfileNoOffSet", chamber, filters.c_str(), modParams.c_str(), strDelim.c_str(), mods.at(im).c_str()); 
-              itTH1s = dataRoot->addDqTH1D(nameTH1s, &TH1s); itTH1s->second.config(nameTH1s, &_params);
-              itTH1s->second.setting(data.at(jd).first);
-              //---
-              nameTH1s = Form("%d%s%s%s%stimeProfileNoOffSet", chamber, filters.c_str(), modParams.c_str(), strDelim.c_str(), mods.at(im).c_str()); 
-              itTH1s = dataRoot->addDqTH1D(nameTH1s, &TH1s); itTH1s->second.config(nameTH1s, &_params);
-              itTH1s->second.setting(data.at(jd).second);
-            
-              nameTH2s = Form("%d%s%s%s%sstripTimeProfileNoOffSet", chamber, filters.c_str(), modParams.c_str(), strDelim.c_str(), mods.at(im).c_str()); 
-              itTH2s = dataRoot->addDqTH2D(nameTH2s, &TH2s); itTH2s->second.config(nameTH2s, &_params);
-              itTH2s->second.setting(data.at(jd).second, data.at(jd).first);
-            }
-            // --
           }
         }
       //
@@ -544,32 +540,23 @@ bool LyPeti::offSet(int chamber, int offSetRun,
           std::vector<std::pair<double, double>> data = analysis.find(chamber)->second.data(mods.at(im).c_str());
           
           // offset
-          std::map<int, std::vector<double>> offSet;
-          bool isOffSet = analysis.find(chamber)->second.offSetTime(&data, &offSet, mods.at(im).c_str());
-          if(isOffSet) {
-            for(auto& itOffSet: offSet) {
-              nameTH1s = Form("%d%s%s%s_%d_%s%stimeProfileStrip", chamber, filters.c_str(), modParams.c_str(), strDelim.c_str(),  itOffSet.first, strDelim.c_str(),  mods.at(im).c_str()); 
-              for(unsigned int iOs = 0; iOs < itOffSet.second.size(); iOs++) {
-                TH1s.find(nameTH1s.c_str())->second.Fill(itOffSet.second.at(iOs));
-                //std::cout << itOffSet.first << " " << itOffSet.second.at(iOs) << std::endl; 
+          for(unsigned int d = 0; d < data.size(); d++) {
+            std::map<int, std::vector<double>> offSet;
+            std::vector<std::pair<double, double>> dataAND = analysis.find(chamber)->second.data("AND");
+            bool isOffSet = analysis.find(chamber)->second.offSetTime(data.at(d).first, &data, &dataAND, &offSet, mods.at(im).c_str());
+            if(isOffSet) {
+              nameTH2s = Form("%d%s%s%s_%d_%s%stimeProfileStrip", chamber, filters.c_str(), modParams.c_str(), strDelim.c_str(),  (int)data.at(d).first, strDelim.c_str(),  mods.at(im).c_str()); 
+              for(auto& itOffSet: offSet) {
+                for(unsigned int iOs = 0; iOs < itOffSet.second.size(); iOs++) {
+                  TH2s.find(nameTH2s.c_str())->second.Fill(itOffSet.second.at(iOs), itOffSet.first);
+                  //std::cout << itOffSet.first << " " << itOffSet.second.at(iOs) << std::endl; 
+                }
               }
             }
           }
-          // ----
-          
-          for(unsigned int jd = 0; jd < data.size(); jd++) { 
-            nameTH1s = Form("%d%s%s%s%sstripProfileNoOffSet", chamber, filters.c_str(), modParams.c_str(), strDelim.c_str(), mods.at(im).c_str()); 
-            TH1s.find(nameTH1s.c_str())->second.Fill(data.at(jd).first);
-            //--- 
-            nameTH1s = Form("%d%s%s%s%stimeProfileNoOffSet", chamber, filters.c_str(), modParams.c_str(), strDelim.c_str(), mods.at(im).c_str()); 
-            TH1s.find(nameTH1s.c_str())->second.Fill(data.at(jd).second);
-            
-            nameTH2s = Form("%d%s%s%s%sstripTimeProfileNoOffSet", chamber, filters.c_str(), modParams.c_str(), strDelim.c_str(), mods.at(im).c_str()); 
-            TH2s.find(nameTH2s.c_str())->second.Fill(data.at(jd).second, data.at(jd).first);
-          }
         }
       }
-      //
+          // ----
       // PART for analysis TRACING AND ETC STUDY CROSS chambers
       //--------------
       analysis.find(chamber)->second.clear("EVENT");
@@ -593,44 +580,86 @@ bool LyPeti::offSet(int chamber, int offSetRun,
 	}
   std::string filters = analysis.find(chamber)->second.filtersStr(); 
   for(unsigned int im = 0; im < mods.size(); im++) {
-     std::string modParams = analysis.find(chamber)->second.modParamsStr(mods.at(im)); 
+    std::string modParams = analysis.find(chamber)->second.modParamsStr(mods.at(im)); 
     std::string name = parser.last(mods.at(im));
     std::string param = parser.first(mods.at(im));
-    if((name == "HR" || name == "LR" || name == "AND") && param == "offset") {
+    if((name == "HR")) {
+    //if((name == "HR" || name == "LR" || name == "AND")) {
       
       int strips = event.numberOfStrips(chamber);
-      int thrEntries = 20;
+      int thrEntries = 10;
+      double refStrip = 28;
       for(int s = 0; s < strips; s++) {
-        nameTH1s = Form("%d%s%s%s_%d_%s%stimeProfileStrip", chamber, filters.c_str(), modParams.c_str(), strDelim.c_str(),  s + chamber, strDelim.c_str(),  mods.at(im).c_str()); 
 		    double value = analysis.find(chamber)->second.getValue(runs.at(r));
         double offSet = 0;
         double eOffSet = 0;
-        auto itOffSet = TH1s.find(nameTH1s);
-        if(!(itOffSet == TH1s.end()) &&  itOffSet->second.GetEntries() >= thrEntries) {
-          int nbinsx = itOffSet->second.GetXaxis()->GetNbins();
-          double mean = 0;
-          double content = 0;
-          for(int bin = 0; bin < nbinsx; bin++) {
-            itOffSet->second.GetBinContent(bin);
-            if(itOffSet->second.GetBinContent(bin) > content) {
-              content = itOffSet->second.GetBinContent(bin);
-              mean = itOffSet->second.GetBinCenter(bin);
+        for(int is = s; is < refStrip; is++) {
+          nameTH2s = Form("%d%s%s%s_%d_%s%stimeProfileStrip", chamber, filters.c_str(), modParams.c_str(), strDelim.c_str(),  is+chamber, strDelim.c_str(),  mods.at(im).c_str()); 
+          auto itOffSet = TH2s.find(nameTH2s);
+          if(!(itOffSet == TH2s.end())) {
+            if(itOffSet->second.GetEntries() <= thrEntries) {
+              offSet = 0; break;
+            }
+            else {
+            TH1D * projh2X = itOffSet->second.ProjectionX("h", is+1, is+1, "");
+            //TF1* g1 = new TF1("g", "gaus", -0.5, 0.5);
+            //projh2X->Fit("g", "S");
+            offSet = offSet +  projh2X->GetMean();
+            //offSet = offSet + g1->GetParameter(1);
+            delete projh2X;
+            //delete g1;
             }
           }
-          offSet = mean;
-          if(name == "HR")
-            offsetsHR->insert(std::make_pair(s+chamber, offSet));
-          if(name == "LR")
-            offsetsLR->insert(std::make_pair(s+chamber, offSet));
-          if(name == "AND")
-            offsets->insert(std::make_pair(s+chamber, offSet));
         }
-        else
-          offSet = 0;
+        for(int is = s; is > refStrip; is--) { 
+          nameTH2s = Form("%d%s%s%s_%d_%s%stimeProfileStrip", chamber, filters.c_str(), modParams.c_str(), strDelim.c_str(),  is+chamber, strDelim.c_str(),  mods.at(im).c_str()); 
+          auto itOffSet = TH2s.find(nameTH2s);
+          if(!(itOffSet == TH2s.end())) {
+            if(itOffSet->second.GetEntries() <= thrEntries) {
+              offSet = 0; break;
+            }
+            else {
+            TH1D * projh2X = itOffSet->second.ProjectionX("h", is-1, is-1, "");
+            //TF1* g1 = new TF1("g", "gaus", -1, 1);
+            //projh2X->Fit("g", "S");
+            offSet = offSet +  projh2X->GetMean();
+            //offSet = offSet + g1->GetParameter(1);
+            delete projh2X;
+            //delete g1;
+            }
+          }
+        }
+        //std::cout << nameTH2s << " " << mean << std::endl;
+        //int nbinsx = itOffSet->second.GetXaxis()->GetNbins();
+        //double mean = 0;
+        //double content = 0;
+        //for(int bin = 0; bin < nbinsx; bin++) {
+        //  itOffSet->second.GetBinContent(bin);
+        //  if(itOffSet->second.GetBinContent(bin) > content) {
+        //    content = itOffSet->second.GetBinContent(bin);
+        //    mean = itOffSet->second.GetBinCenter(bin);
+        //  }
+        //}
+        //TF1* g1 = new TF1("g", "gaus", mean-2, mean+2);
+        
+        // itOffSet->second.Fit("g", "S");
+        
+        // g1->Draw("same");
+        //offSet = g1->GetParameter(1) - refTime;
+        //offSet = mean - refTime;
+        //eOffSet = g1->GetParameter(2)/std::sqrt(itOffSet->second.GetEntries());
+        //delete g1;
+        if(name == "HR")
+          offsetsHR->insert(std::make_pair(s+chamber, offSet));
+        if(name == "LR")
+          offsetsLR->insert(std::make_pair(s+chamber, offSet));
+        if(name == "AND")
+          offsets->insert(std::make_pair(s+chamber, offSet));
 		    nameTGEs = Form("%d%s%s_%d_%soffSet", chamber, strDelim.c_str(), mods.at(im).c_str(), (int)value, strDelim.c_str());   
         itTGEs = dataRoot->addDqTGE(nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
         TGEs->find(nameTGEs.c_str())->second->setting(s + chamber, 0, offSet, eOffSet);
       }
+      //}
     }
   }
   analysis.find(chamber)->second.clear("RUN");
@@ -901,12 +930,13 @@ bool LyPeti::analysis()
     values.clear(); algoParams.clear();
     bool isAnalysis = analysis.find(chamber)->second.configure();
     
-    //if(isOffSet) {
-    //std::map<int, double> offsets; std::map<int, double> offsetsHR; std::map<int, double> offsetsLR;
-    //this->offSet(chamber, 741495, &offsets, &offsetsHR, &offsetsLR, &TGEs, &dataRoot);
-    //event.setTimeOffSetHR(&offsetsHR); 
-    //event.setTimeOffSetLR(&offsetsLR);
-    //event.setTimeOffSet(&offsets);
+    if(chamber == 1000) {
+     std::map<int, double> offsets; std::map<int, double> offsetsHR; std::map<int, double> offsetsLR;
+     this->offSet(chamber, 743170, &offsets, &offsetsHR, &offsetsLR, &TGEs, &dataRoot);
+     //event.setTimeOffSetHR(&offsetsHR); 
+     //event.setTimeOffSetLR(&offsetsLR);
+     //event.setTimeOffSet(&offsets);
+    }
     if(!isAnalysis) {
     	_log += " ERROR: Can't configure analysis for chamber: " + std::to_string(chamber) + "!" + _rowDelimiter;
 			return false;
@@ -1386,6 +1416,15 @@ bool LyPeti::analysis()
           itTGEs = dataRoot.addDqTGE(nameTGEs, &TGEs); itTGEs->second->config(nameTGEs, &_params);
           TGEs.find(nameTGEs.c_str())->second->setting(value, eValue, clusterSize, eClusterSize);
         }
+				nameTH1s = Form("%d%sNumberOfHits%s", chamber, strDelim.c_str(), mods.at(im).c_str());
+        auto itMHR = TH1s.find(nameTH1s);
+        if(!(itMHR == TH1s.end())) {
+          double mult = itMHR->second.GetEntries(); double eMult = 0;
+				  double value = analysis.find(chamber)->second.getValue(runs.at(r)); double eValue = 0;
+				  nameTGEs = Form("%d%s%sNumberOfHits", chamber, strDelim.c_str(), mods.at(im).c_str());   
+          itTGEs = dataRoot.addDqTGE(nameTGEs, &TGEs); itTGEs->second->config(nameTGEs, &_params);
+          TGEs.find(nameTGEs.c_str())->second->setting(value, eValue, mult, eMult);
+        }
       }
       analysis.find(event.chambers()->at(ic))->second.clear("RUN");
     }
@@ -1447,8 +1486,8 @@ bool LyPeti::analysis()
   for(auto profiles: TGEs) {
  		profiles.second->sortByX(); 
     profiles.second->plot();
-		//std::cout << profiles.first << std::endl;
-    //profiles.second->print("sigmoid");
+		std::cout << profiles.first << std::endl;
+    profiles.second->print("sigmoid");
     std::string histName = parser.histName(profiles.first);
     std::string comment = this->findParam("comment", &_params);
     std::string path = comment + "_" + logRunNumber + "/analysis/chamber_" + parser.chamberName(profiles.first); 

@@ -11,8 +11,6 @@
 #include "DqParser.hpp"
 #include "LyPetiEvent.hpp"
 
-
-
 namespace lyCB {
   struct data
   {
@@ -20,8 +18,11 @@ namespace lyCB {
     int centralStrip;
     double centralTime;
     double time;
+    double middleTime;
+    double middleStrip;
     double X;
     double Y;
+    std::vector<std::pair<double, double>> hits;
   };
 }
 class LyPetiAnalysis
@@ -68,7 +69,8 @@ public:
   
   bool noise(double* n, double* eN, std::string mod);
   
-  bool offSetTime(std::vector<std::pair<double, double>>* data, 
+  bool offSetTime(int refStrip, std::vector<std::pair<double, double>>* data,
+                                std::vector<std::pair<double, double>>* dataAND,
                               std::map<int, std::vector<double>>* output, std::string mod); 
   bool multiplicity(int* mult, std::string mod); 
   bool stripsMultiplicity(int* mult, std::string mod); 
@@ -77,6 +79,8 @@ public:
   bool eventFraction(double* fraction, std::string mod);
   bool minTime(double* time, std::string mod); 
   bool maxTime(double* time, std::string mod); 
+  bool filterXtalk(std::vector<std::pair<int, int>>* iHR,
+                   std::vector<std::pair<int, int>>* iLR); 
   //----------------------------------------------------------------------------
 
   bool isOffSet(std::string mod);
@@ -85,11 +89,13 @@ public:
   bool stripsAlgos();
   bool choiceDataFill(std::string param);
   bool dataFillHR(std::vector<std::pair<int, int>>* iHR, 
-                                std::vector<std::pair<double, double>>* output, bool inverse, bool isOffSet); 
+                                std::vector<std::pair<double, double>>* output); 
   bool dataFillLR(std::vector<std::pair<int, int>>* iLR,
-             std::vector<std::pair<double, double>>* output, bool inverse);
-  bool dataFillAndOr(std::vector<std::pair<int, int>>* iHR,
+             std::vector<std::pair<double, double>>* output);
+  bool  dataFillAndOr(std::vector<std::pair<int, int>>* iHR,
                                    std::vector<std::pair<int, int>>* iLR,
+                                   std::vector<std::pair<double, double>>* notHR, 
+                                   std::vector<std::pair<double, double>>* notLR, 
                                    std::vector<std::pair<double, double>>* OR, 
                                    std::vector<std::pair<double, double>>* AND); 
   //----------------------------------------------------------------------------
@@ -97,7 +103,11 @@ public:
   
   bool choiceDataClusterBasic(std::string param); 
   bool clusterBasic(std::vector<std::pair<double, double>> data, std::map<int, lyCB::data>* output); 
+  bool clusterBasic(std::vector<std::pair<double, double>> dataHR, std::vector<std::pair<double, double>> dataLR,  
+                                std::map<int, lyCB::data>* output, bool isOR); 
   int centralStrip(std::vector<std::pair<double, double>>* strips); 
+  double middleTimeCB(std::vector<std::pair<double, double>>* strips); 
+  double middleStripCB(std::vector<std::pair<double, double>>* strips); 
   //----------------------------------------------------------------------------
   
   bool fillEvents(std::string radius, unsigned int js, unsigned int jr); 
@@ -106,7 +116,6 @@ public:
   bool filters(std::string radius, unsigned int js, unsigned int jr); 
   bool triger(unsigned int js);
   bool window(std::string radius, unsigned int js, unsigned int jr); 
-  bool BCID(std::string radius, unsigned int js, unsigned int jr);
   //----------------------------------------------------------------------------
   
   //----------------------------------------------------------------------------
@@ -118,6 +127,7 @@ public:
   
 protected:
  
+  std::map<int, double> _offsets;
   bool _isSkipEvent;
   int _numberOfEvents;
 
@@ -142,6 +152,8 @@ protected:
   std::vector<std::pair<double, double>> _LR; std::vector<std::pair<double, double>> _noiseLR;
   std::vector<std::pair<double, double>> _AND; std::vector<std::pair<double, double>> _noiseAND;
   std::vector<std::pair<double, double>> _OR; std::vector<std::pair<double, double>> _noiseOR;
+  std::vector<std::pair<double, double>> _notHR;
+  std::vector<std::pair<double, double>> _notLR;
   
   int _numNoiseHitsHR; 
   int _numNoiseHitsLR; 

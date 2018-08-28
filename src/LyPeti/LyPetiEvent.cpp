@@ -299,7 +299,7 @@ bool LyPetiEvent::setTimeOffSet(std::map<int, double>* offsets)
   for(auto& it: _map) {
     itOffSet = offsets->find(it.first);
       if(itOffSet != offsets->end())
-        it.second.at(6) = offsets->find(it.first)->second;
+        it.second.at(6) = it.second.at(6) + offsets->find(it.first)->second;
   }
     return true; 
 }
@@ -310,7 +310,7 @@ bool LyPetiEvent::setTimeOffSetHR(std::map<int, double>* offsets)
   for(auto& it: _map) {
     itOffSet = offsets->find(it.first);
       if(itOffSet != offsets->end())
-        it.second.at(3) = offsets->find(it.first)->second;
+        it.second.at(3) = it.second.at(3) + offsets->find(it.first)->second;
   }
     return true; 
 }
@@ -321,7 +321,7 @@ bool LyPetiEvent::setTimeOffSetLR(std::map<int, double>* offsets)
   for(auto& it: _map) {
     itOffSet = offsets->find(it.first);
       if(itOffSet != offsets->end())
-        it.second.at(5) = offsets->find(it.first)->second;
+        it.second.at(5) = it.second.at(5) + offsets->find(it.first)->second;
   }
     return true; 
 }
