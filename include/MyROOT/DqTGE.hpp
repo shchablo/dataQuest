@@ -37,6 +37,7 @@ public:
 	bool sortByX();
 	bool plot();
   bool print(std::string mod);
+  bool print(std::vector<std::string> *lines);
   //----------------------------------------------------------------------------
 protected:
     bool _isConfig;

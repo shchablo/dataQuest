@@ -10,6 +10,7 @@
 
 #include "DqParser.hpp"
 #include "LyPetiEvent.hpp"
+#include "DqRoot.hpp"
 
 namespace lyCB {
   struct data
@@ -56,6 +57,7 @@ public:
   bool clear(std::string type);
   bool clearEvent();
   bool clearRun();
+  bool newWindows();
   
   std::string filtersStr();
   std::string modParamsStr(std::string mod);
@@ -108,6 +110,7 @@ public:
   int centralStrip(std::vector<std::pair<double, double>>* strips); 
   double middleTimeCB(std::vector<std::pair<double, double>>* strips); 
   double middleStripCB(std::vector<std::pair<double, double>>* strips); 
+  std::vector<double> clustersTimesCB(std::vector<std::pair<double, double>>* strips); 
   //----------------------------------------------------------------------------
   
   bool fillEvents(std::string radius, unsigned int js, unsigned int jr); 
@@ -187,11 +190,12 @@ protected:
   int _thrTrigers;  
   
   bool _isWindow;  
-  double _begWindowHR;  
-  double _endWindowHR;  
-  double _begWindowLR;  
-  double _endWindowLR;  
-  
+  double _begWindowHR; double _begWindowHR_def;   
+  double _endWindowHR; double _endWindowHR_def; 
+  double _begWindowLR; double _begWindowLR_def;  
+  double _endWindowLR; double _endWindowLR_def;
+  TH1F* _hHR; 
+  TH1F* _hLR; 
   bool _isNoise;  
   double _begNoise;  
   double _endNoise;  
