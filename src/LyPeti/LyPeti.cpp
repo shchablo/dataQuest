@@ -1991,6 +1991,366 @@ bool LyPeti::binToROOT()
   return true;
 }
 
+//bool LyPeti::binToLyROOT() 
+//{
+//  std::cout << "#---\n" << std::endl;
+//	std::cout  << "Getting ingredients for cookies..." << std::endl;
+//  // GENERAL ANALYSIS PARAMETORS -----------------------------------------------
+//  std::string logRunNumber; 
+//  std::string plusOutDir; 
+//  std::string rootFilePath;
+//  std::string outName;
+//  LyPetiEvent event;
+//  std::vector<std::string> mods;
+//  std::map<int, LyPetiAnalysis> analysis;
+//  std::vector<int> runs;
+//  // ---------------------------------------------------------------------------
+//
+//  // PARSING CARD PARAMETORS ---------------------------------------------------
+//  
+//  // system parametors
+//  std::vector<std::string> parserArrayDelimiters;
+//  parserArrayDelimiters.push_back(this->findParam("sys_DqParser_AD_1", &_params));
+//  parserArrayDelimiters.push_back(this->findParam("sys_DqParser_AD_2", &_params));
+//  parserArrayDelimiters.push_back(this->findParam("sys_DqParser_AD_3", &_params));
+//  parserArrayDelimiters.push_back(this->findParam("sys_DqParser_AD_4", &_params));
+//  parserArrayDelimiters.push_back(this->findParam("sys_DqParser_AD_5", &_params));
+//  DqParser parser; parser.setArrayDelimiter(parserArrayDelimiters);
+//
+//  std::string strDelim = this->findParam("sys_DqParser_AD_3", &_params);
+//  
+//  logRunNumber = this->findParam("logNumber", &_params);  
+//  
+//  plusOutDir = this->findParam("dir", &_params);  
+//  outName = this->findParam("fN", &_params);
+//  std::string defaultPath = parser.filePath(_outputs.at(0));
+//  rootFilePath = defaultPath + plusOutDir + "/" + outName;
+//
+//  std::string sMods = this->findParam("mods", &_params);
+//  mods = parser.parsArray(sMods);
+//
+//	// Runs info
+//  std::string sRuns = this->findParam("runs", &_params);
+//  std::vector<std::string> vsRuns = parser.parsArray(sRuns);
+//  runs = parser.strToIntArray(vsRuns);
+//  sRuns.clear(); vsRuns.clear();
+//  
+//  std::string sStrips = this->findParam("strips", &_params);
+//  std::vector<std::string> vsStrips = parser.parsArray(sStrips);
+//  std::vector<int> strips = parser.strToIntArray(vsStrips);
+//  sStrips.clear(); vsStrips.clear();
+//  
+//  std::string sTrigCh = this->findParam("trigCh", &_params);
+//  std::vector<std::string> vsTrigCh = parser.parsArray(sTrigCh);
+//  std::vector<double> trigCh = parser.strToDoubleArray(vsTrigCh);
+//  sTrigCh.clear(); vsTrigCh.clear();
+//  
+//  std::string sHR = this->findParam("HR", &_params);
+//  std::vector<std::string> vsHR = parser.parsArray(sHR);
+//  std::vector<double> HR = parser.strToDoubleArray(vsHR);
+//  sHR.clear(); vsHR.clear();
+//  
+//  std::string sLR = this->findParam("LR", &_params);
+//  std::vector<std::string> vsLR = parser.parsArray(sLR);
+//  std::vector<double> LR = parser.strToDoubleArray(vsLR);
+//  sLR.clear(); vsLR.clear();
+//  
+//  std::string sTDCs = this->findParam("TDCs", &_params);
+//  std::vector<std::string> vsTDCs = parser.parsArray(sTDCs);
+//  std::vector<double> TDCs = parser.strToDoubleArray(vsTDCs);
+//  sTDCs.clear(); vsTDCs.clear();
+//  
+//  std::string sTimeOffSet = this->findParam("timeOffSet", &_params);
+//  std::vector<std::string> vsTimeOffSet = parser.parsArray(sTimeOffSet);
+//  std::vector<double> timeOffSet = parser.strToDoubleArray(vsTimeOffSet);
+//  sTimeOffSet.clear(); vsTimeOffSet.clear();
+//  
+//  std::string sTimeOffSetHR = this->findParam("timeOffSetHR", &_params);
+//  std::vector<std::string> vsTimeOffSetHR = parser.parsArray(sTimeOffSetHR);
+//  std::vector<double> timeOffSetHR = parser.strToDoubleArray(vsTimeOffSetHR);
+//  sTimeOffSetHR.clear(); vsTimeOffSetHR.clear();
+// 
+//  std::string sTimeOffSetLR = this->findParam("timeOffSetLR", &_params);
+//  std::vector<std::string> vsTimeOffSetLR = parser.parsArray(sTimeOffSetLR);
+//  std::vector<double> timeOffSetLR = parser.strToDoubleArray(vsTimeOffSetLR);
+//  sTimeOffSetLR.clear(); vsTimeOffSetLR.clear();
+//  
+//  std::string sInverse = this->findParam("inverse", &_params);
+//  std::vector<std::string> vsInverse = parser.parsArray(sInverse);
+//  std::vector<double> inverse = parser.strToDoubleArray(vsInverse);
+//  sInverse.clear(); vsInverse.clear();
+//  
+//  std::string sChambers = this->findParam("chambers", &_params);
+//  std::vector<std::string> vsChambers = parser.parsArray(sChambers);
+//  std::vector<double> chambers = parser.strToDoubleArray(vsChambers);
+//  sChambers.clear(); vsChambers.clear(); 
+//  
+//  // ---------------------------------------------------------------------------
+//	
+//  // ANALYSIS INPUT PARAMETORS -------------------------------------------------
+//	// fill maping 
+//  bool isMap = false;
+//  isMap = event.mapping(strips, trigCh, TDCs, 
+//                HR, timeOffSetHR, 
+//                LR, timeOffSetLR,  
+//                timeOffSet,
+//                inverse,
+//                chambers); // inside check map arrays.
+//  if(!isMap) {
+//      _log += " ERROR! Map isn't correct, Size of arrays are not equal!" + _rowDelimiter
+//					 + "strips=" + std::to_string(strips.size()) + parserArrayDelimiters.at(0) 
+//					 + "TDCs=" + std::to_string(TDCs.size()) + parserArrayDelimiters.at(0) 
+//					 + "trigCh=" + std::to_string(trigCh.size()) + parserArrayDelimiters.at(0)
+//					 + "HR=" + std::to_string(HR.size()) + parserArrayDelimiters.at(0)
+//					 + "LR=" + std::to_string(LR.size()) + parserArrayDelimiters.at(0)
+//					 + "timeOffSetHR=" + std::to_string(timeOffSetHR.size()) + parserArrayDelimiters.at(0)
+//					 + "timeOffSetLR=" + std::to_string(timeOffSetLR.size()) + parserArrayDelimiters.at(0)
+//					 + "timeOffSet=" + std::to_string(timeOffSet.size()) + parserArrayDelimiters.at(0)
+//					 + "inverse=" + std::to_string(inverse.size()) + parserArrayDelimiters.at(0)
+//					 + "asciiChambers=" + std::to_string(chambers.size()) + _rowDelimiter;
+//      return false;
+//  }
+//  
+//  std::cout << "\n#---" << std::endl;
+//  // chambers in processing  
+//	std::cout  << "N: " << event.chambers()->size() << " chamber(s) in Processing:";
+//	for(unsigned int i = 0; i < event.chambers()->size(); i++)
+//		std::cout << " index=" << event.chambers()->at(i);
+//	std::cout << std::endl;
+//	
+//  // COMAND LINE ---------------------------------------------------------------
+//  if(runs.size() > 0) {
+//    int processingFiles = 0;
+//
+//    for(unsigned int r = 0; r < runs.size(); r++) {
+//	    for(unsigned int i = 0; i < _inputs.size(); i++) {
+//        if(runs.at(r) == this->numRun(parser.fileName(_inputs.at(i))))
+//          processingFiles += 1;
+//      }
+//    }
+//    if(processingFiles > 0)
+//      std::cout <<"N: " << processingFiles << " file(s) in Processing... / ";
+//    else {
+//      _log += " ERROR! Processing file(s): " 
+//	  			 + std::to_string(processingFiles)  + "!" + _rowDelimiter;
+//      return false;
+//    }
+//  }
+//  else {  
+//    runs.clear();
+//  	runs = this->parsNumRuns(_inputs);
+//    std::cout <<"N: " << _inputs.size() << " file(s) in Processing... / ";
+//  }
+//  std::cout <<"N: " << runs.size() << " run(s) in Processing..." << std::endl;
+//  // ---------------------------------------------------------------------------  
+//  
+//  std::cout << "#---" << std::endl;
+//	std::cout  << "\nStill Cooking the cookies..." << std::endl;
+//	
+//	// ANALYSIS CLASS SETTING ----------------------------------------------------	
+//  for(unsigned int i = 0; i < event.chambers()->size(); i++) {
+//    int chamber = event.chambers()->at(i); 
+//    auto itA = analysis.find(chamber);
+//    if(itA == analysis.end())
+//      analysis.insert(std::make_pair(chamber, LyPetiAnalysis{}));
+//
+//    analysis.find(chamber)->second.setParser(&parser);
+//    
+//    // take values for runs 
+//    std::vector<double> values; 
+//    std::string sValues; 
+//    bool isValues = this->findParam((std::to_string(chamber) + strDelim + "values"), &sValues, &_params);
+//    if(isValues) {
+//      std::vector<std::string> vsValues = parser.parsArray(sValues);
+//      values = parser.strToDoubleArray(vsValues);
+//      sValues.clear(); vsValues.clear();
+//    }
+//    else {
+//      bool isValuesDef = this->findParam("values", &sValues, &_params);
+//      if(isValuesDef) {
+//    	  _log += " Chamber:  " + std::to_string(chamber) + " is using values !" + _rowDelimiter;
+//        std::vector<std::string> vsValues = parser.parsArray(sValues);
+//        values = parser.strToDoubleArray(vsValues);
+//        sValues.clear(); vsValues.clear();
+//      }
+//    }
+//	 	
+//		// take filters params
+//    std::map<std::string, double> algoParams; 
+// 		for(auto& itP: _params) {
+//			std::string chamberName = parser.chamberName(itP.first); // first param before delim
+//			bool isAlgo = parser.findParamFromStr("algo", itP.first);
+//			bool isFilter = parser.findParamFromStr("filter", itP.first);
+//			if(chamberName == std::to_string(chamber) && (isFilter || isAlgo)) {
+//        double value = 0;
+//				bool isValue = parser.strToDouble(&value, itP.second);
+//				if(isValue)
+//      	 	algoParams.insert(std::make_pair(parser.histName(itP.first), value));
+//			}
+//			if((isAlgo || isFilter) && (chamberName == "filter" || chamberName == "algo") ) {
+//    		_log += " WARNING: Param for chamber: " + std::to_string(chamber)  + " is " + itP.first + "." + _rowDelimiter;
+//  			double value = 0;
+//				bool isValue = parser.strToDouble(&value, itP.second);
+//				if(isValue)
+//      	 	algoParams.insert(std::make_pair(parser.histName(itP.first), value));
+//			}
+//		}
+//    analysis.find(chamber)->second.setRuns(runs, values);
+//    analysis.find(chamber)->second.setParams(algoParams);
+//    values.clear(); algoParams.clear();
+//    bool isAnalysis = analysis.find(chamber)->second.configure();
+//		if(!isAnalysis) {
+//    	_log += " ERROR: Can't configure analysis for chamber: " + std::to_string(chamber) + "!" + _rowDelimiter;
+//			return false;
+//		}
+//  }
+//  // ---------------------------------------------------------------------------
+//  
+//  strips.clear(); trigCh.clear(); TDCs.clear(); chambers.clear(); 
+//  HR.clear(); timeOffSetHR.clear(); LR.clear(); timeOffSetLR.clear(); timeOffSet.clear(); inverse.clear(); // clear memory (map params) 
+//  // ---------------------------------------------------------------------------
+//
+//  
+//  LyPetiRead stream; 
+//  bool isOpen = false;
+//  bool isClose = false;
+//  
+//  // runs params
+//  std::cout  << "Cookies are ready, invite you to enjoy the taste!" << std::endl;
+//  std::cout << "#-------------------------------------------------------------------------------" << std::endl;
+//	DqRoot dataRoot; dataRoot.setOutputFile(Form("%s", rootFilePath.c_str()), "default");
+//	for(unsigned int r = 0; r < runs.size(); r++) {
+//    //TFile file(Form("%s/RF_%d.root", parser.filePath(_outputs.at(0)).c_str(), r),"RECREATE");
+//    std::cout << std::endl << "Run[" << r << "]: " << runs.at(r);
+//    
+//    // LOOP (Analysis) READ DATA ------------------------------------
+//    bool isFindRun = false;
+//    std::cout << "\n  Converting loop..." << std::endl;
+//    for(unsigned int i = 0; i < _inputs.size(); i++) {
+//			
+//      if(runs.at(r) == this->numRun(parser.fileName(_inputs.at(i))))
+//        isFindRun = true;
+//      if(runs.at(r) != this->numRun(parser.fileName(_inputs.at(i)))) {
+//        if(i < _inputs.size() - 1)
+//          continue;
+//        else if(!isFindRun) {
+//          _log += " WARNING! RUN: " 
+//	  				 + std::to_string(runs.at(r)) + " was skipped! Can't find files!" 
+//	  				 + _rowDelimiter;
+//          continue;
+//        }
+//        else
+//          continue;
+//      }
+//
+//  	  std::cout << "    File[" << i << "]: " 
+//														 << parser.fileName(_inputs.at(i)) << std::endl;
+//
+//  	  isOpen = stream.open(_inputs.at(i));
+//  	  if (!isOpen) {
+//  	    _log += " WARNING! file: " 
+//						 + parser.fileName(_inputs.at(i))  + " was skipped! Can't open!" 
+//						 + _rowDelimiter;
+//  	    continue;
+//  	  }
+//
+//      // read raw data
+//  	  int codeRead = 1;
+//			int size = stream.size();
+//  	  int pos = 0, prev = 0;
+//  	  std::vector<zdaq::buffer*> buffers; // raw data (buffers)
+//      
+//      DqProcessBar processBar;
+//  	  processBar.setEndIndex(size);
+//  	  processBar.setCurrentStep(0);
+//  	  while(codeRead > 0) {
+//  	    codeRead = stream.read(&pos, &buffers); // read file
+//      
+//  	    // fill event class with raw data from buffers
+//  	    event.clear(); event.fill(&buffers); 
+//
+//  	    // clear memory form old buffers
+//  	    for (int j = 0; j < (int)buffers.size(); j++)
+//  	      delete buffers.at(j);
+//  	    buffers.clear();
+//  	  
+//  	    bool isEvent = event.check();
+//  	    if(!isEvent) {
+//  	      _log += " WARNING! Event in pos: " + std::to_string(prev) + " was skipped! Can't open!" 
+//				       + _rowDelimiter;
+//  	      continue;
+//  	    }
+//	     // ----------------------------------------------------------------------
+//
+//  	    // ANALYSIS BEGIN
+//				for(unsigned int ic = 0; ic < event.chambers()->size(); ic++) {
+//          int chamber = event.chambers()->at(ic); 
+//          Int_t number;
+//          Float_t time; 
+//          Float_t ch;
+//          TTree T(Form("run_%d_chamber_%d", runs.at(r), chamber), Form("run_%d_chamber_%d", runs.at(r), chamber));
+//          T.Branch("EventNumber", &number,"EventNumber/I");
+//          T.Branch("TDC_channel", &ch,"TDC_channel/F");
+//          T.Branch("TDC_TimeStamp", &time,"TDC_TimeStamp/F");
+//         // std::cout << "chamber=" << chamber << std::endl;
+//          unsigned int numberOfTrigers = event.trigs(chamber)->size();
+//          bool isTrigers = analysis.find(chamber)->second.fillTrigers(numberOfTrigers);
+//					if(isTrigers) {
+//            for(unsigned int js = 0; js < event.strips(chamber)->size(); js++) {
+//              if(event.strips(chamber)->at(js).trigs.size() == 1) {
+//                number = event.strips(chamber)->at(js).trigs.at(0)->head->number;
+//                for(unsigned int jh = 0; jh < event.strips(chamber)->at(js).HR.size(); jh++) {
+//                  ch = event.strips(chamber)->at(js).number - chamber;
+//                  time = event.strips(chamber)->at(js).HR.at(jh)->time -  event.strips(chamber)->at(js).trigs.at(0)->time;
+//                //  std::cout << std::setprecision(3) << "HR:" << ch << "|" << time << std::endl;
+//                  T.Fill();
+//                }
+//         		    for(unsigned int jl = 0; jl < event.strips(chamber)->at(js).LR.size(); jl++) {
+//                  ch = event.strips(chamber)->at(js).number + 500 - chamber;
+//                  time = event.strips(chamber)->at(js).LR.at(jl)->time -  event.strips(chamber)->at(js).trigs.at(0)->time;
+//                //  std::cout << std::setprecision(3) << "LR:" << ch << "|" << time << std::endl; 
+//                  T.Fill();
+//         		    }
+//              }
+//            }
+//					}
+//        dataRoot.writeObject("", &T);
+//		    }
+//        for(unsigned int ic = 0; ic < event.chambers()->size(); ic++)
+//          analysis.find(event.chambers()->at(ic))->second.clear("EVENT");
+//        // ANALYSIS END.
+//  	  	if(codeRead > 0)
+//					processBar.print(pos, 0.02);
+//				else
+//					processBar.print(size, 0.02);
+//  	    prev = pos;
+//  	//------  
+//    }
+//        std::cout << std::endl;
+//  	    if(isOpen) {
+//  	      isClose = stream.close();
+//  	      if(!isClose) {
+//  	        _log += " ERROR! file: " + parser.fileName(_inputs.at(i))  
+//																	 + " Can't close!" + _rowDelimiter;
+//  	    	  return false;
+//				  }
+//  	    }
+//	    }
+//      for(unsigned int ic = 0; ic < event.chambers()->size(); ic++)
+//        analysis.find(event.chambers()->at(ic))->second.clear("RUN");
+//  }
+//  std::cout << "End of Processing!" << std::endl;
+//  std::cout << "#-------------------------------------------------------------------------------\n" << std::endl;
+//	std::cout  << "Comparing cookies and Cleaning the kitchen..." << std::endl;
+//  
+//	std::cout << "You're welcome!" << std::endl;
+//  std::cout << "#---\n" << std::endl;
+//  std::string comment = this->findParam("comment", &_params);
+//  std::cout << "#COMMENT: " << comment << "_" << logRunNumber <<  std::endl;
+//  std::cout << "#OUTPUT FILE: " << rootFilePath <<  std::endl;
+//  return true;
+//}
+
 bool LyPeti::run() 
 {
   bool isRun = false;

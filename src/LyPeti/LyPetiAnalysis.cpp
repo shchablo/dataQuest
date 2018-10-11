@@ -142,8 +142,8 @@ std::string LyPetiAnalysis::modParamsStr(std::string mod)
 bool LyPetiAnalysis::skipEvent() 
 {
   double thrMin = 0;
-    thrMin = -5000;
-   double thrMax = -50;
+    thrMin = -300;
+   double thrMax = -10;
 
   if((thrMin < _minTime) && _isMinMaxTime && _isFoundTriger) {
     _isSkipEvent = true;
@@ -254,7 +254,7 @@ bool LyPetiAnalysis::clear(std::string type)
   if(type == "CONFIG RUN") {
     this->clearEvent();
     this->clearRun();
-    this->newWindows();
+    //this->newWindows();
   }
   return true;
 }
@@ -472,6 +472,9 @@ bool LyPetiAnalysis::triger(unsigned int js)
   bool result = false;
   if(_strips->at(js).trigs.size() <= (unsigned int)_thrTrigers && _strips->at(js).trigs.size() > 0)
     result = true;
+
+  //if(result == true && _strips->at(js).trigs[0]->BCID <= 2)
+  //  result = false;
   return result;
 }
 bool LyPetiAnalysis::window(std::string radius, unsigned int js, unsigned int jr) 
@@ -881,7 +884,7 @@ bool LyPetiAnalysis::multiplicity(int* mult, std::string mod)
      name == "AND" || name == "OR")
     result = this->stripsMultiplicity(mult, mod);
   if(name == "CB" || name == "noiseCB")
-    result = this->clusterBasicMultiplicity(mult, mod);
+    result = this->clusterBasicMultiplicity(mult, name);
   return result;
 }
 
@@ -938,7 +941,7 @@ bool LyPetiAnalysis::clusterBasicMultiplicity(int* mult, std::string mod)
   double multiplicity = 0;
   if(mod == "CB")
     multiplicity = _CB.size();
-  if(mod == "noiseCB")
+  else if(mod == "noiseCB")
     multiplicity = _noiseCB.size();
   *mult = multiplicity;
   if(multiplicity == 0)
@@ -955,7 +958,7 @@ bool LyPetiAnalysis::clusterSize(std::vector<int>* sizes, std::string mod)
     if(sizes->size() == 0)
       return false;
   }
-  if(name == "noiseCB") {
+  else if(name == "noiseCB") {
       for(auto& it: _noiseCB)
     sizes->push_back(it.second.size);
     if(sizes->size() == 0)
@@ -1031,7 +1034,7 @@ bool LyPetiAnalysis::choiceDataFill(std::string param)
   bool result = false;
   if(!_isStripsFill) {
     if(param == "data") {
-//      this->filterXtalk(&_iHR, &_iLR); 
+      //this->filterXtalk(&_iHR, &_iLR); 
       this->dataFillHR(&_iHR, &_HR);
       this->dataFillLR(&_iLR, &_LR);
       this->dataFillAndOr(&_iHR, &_iLR, &_notHR, &_notLR, &_OR, &_AND);
