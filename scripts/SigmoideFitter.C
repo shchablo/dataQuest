@@ -1,14 +1,14 @@
-void SigmoideFitter(string fileIn){
-//void SigmoideFitter() {
+//void SigmoideFitter(string fileIn){
+void SigmoideFitter() {
 
   string fileIn = "fitData";
   TGraphErrors* efficiency = new TGraphErrors();
 
   // open a file in read mode.
 
-  string fileInName("results/Sigmoids/");
-  fileInName = fileInName + "" + fileIn + "fitData.txt";
-  //string fileInName = "../results/fitData.txt";
+  //string fileInName("results/Sigmoids/");
+  //fileInName = fileInName + "" + fileIn + "fitData.txt";
+  string fileInName = "fitData.txt";
   
   cout << fileInName.c_str() << endl;
   string sHV, sEff, sEff_Err, line, sTitle;
@@ -53,9 +53,9 @@ void SigmoideFitter(string fileIn){
  sigmoid->SetParName(0,"#epsilon_{max}");
  sigmoid->SetParName(1,"#lambda");
  sigmoid->SetParName(2,"HV_{50%}");
- sigmoid->SetParameter(0,0.95);
+ sigmoid->SetParameter(0,0.99);
  sigmoid->SetParameter(1,0.01);
- sigmoid->SetParameter(2,7100);
+ sigmoid->SetParameter(2,7500);
 
             //****************************************************
 
@@ -70,10 +70,10 @@ efficiency->SetMarkerSize(2);
 
   Plotter->SetStats(0);
 
-  //Plotter->SetMinimum(0.);
-  //Plotter->SetMaximum(1.05);
-  Plotter->SetMinimum(0);
-  Plotter->SetMaximum(1800);
+  Plotter->SetMinimum(0.);
+  Plotter->SetMaximum(1.05);
+//  Plotter->SetMinimum(0);
+//  Plotter->SetMaximum(1800);
 
   Plotter->Draw();
 
@@ -106,20 +106,20 @@ efficiency->SetMarkerSize(2);
   TLatex* ltx = new TLatex();
   ltx->SetTextSize(0.04);
 
-  double knee = p3 - log(1/0.95-1)/p2;
+  double knee = p3 - log(1/0.99-1)/p2;
   cout << "Val at knee " << sigmoid->Eval(knee) << " Val at knee/p1 = " << sigmoid->Eval(knee)/p1 << endl;
 
-  double WP = knee+120;
+  double WP = knee+25;
 
   TLine* lWP = new TLine(WP, 0., WP, 1);
   lWP->SetLineStyle(2);
   lWP->Draw();
 
   double add = (uLimit-lLimit)/11.; 
-  ltx->DrawLatex(WP-8*add, 0.42, Form("Eff(WP) = %.2f", sigmoid->Eval(WP)));
-  ltx->DrawLatex(WP-8*add, 0.35, Form("WP = %.f V", WP));
-  ltx->DrawLatex(WP-8*add, 0.27, Form("knee = %.f V", knee));
-  ltx->DrawLatex(WP-8*add, 0.20, Form("HV(50%) = %.f V", p3));
+  ltx->DrawLatex(WP-8*add, 0.42, Form("Eff(WP) = %.3f", sigmoid->Eval(WP)));
+  ltx->DrawLatex(WP-8*add, 0.35, Form("WP = %.3f V", WP));
+  ltx->DrawLatex(WP-8*add, 0.27, Form("knee = %.3f V", knee));
+  ltx->DrawLatex(WP-8*add, 0.20, Form("HV(50%) = %.3f V", p3));
 
 
   TLine* plateau = new TLine(lLimit-50, p1, uLimit+50, p1);
@@ -131,7 +131,7 @@ efficiency->SetMarkerSize(2);
   if ((knee - lLimit) < (uLimit-lLimit)*(3/11.)) add = knee + add;
   else add = lLimit+add;
 
-  ltx->DrawLatex(add, p1+0.02, Form("plateau = %.2f", p1));
+  ltx->DrawLatex(add, p1+0.02, Form("plateau = %.3f", p1));
 
   cout << "knee = " << knee << endl;
 

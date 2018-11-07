@@ -14,7 +14,7 @@ MESSAGE(STATUS "Looking for Root...")
 
 SET(ROOT_CONFIG_SEARCHPATH
   ${SIMPATH}/tools/root/bin
-  /opt/dhcal/root/bin
+  /home/const/ROOT/bin
 )
 
 SET(ROOT_DEFINITIONS "")

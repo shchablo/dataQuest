@@ -108,8 +108,8 @@ int main(int argc, char* argv[]) {
 			  	std::cout << configure.log(logs, card.getCardLineDelimiter());
         }
         logs.clear();
-        logs.push_back(card.getLog());
-        logs.push_back(analysis[i]->getLog());
+//        logs.push_back(card.getLog());
+//        logs.push_back(analysis[i]->getLog());
         std::string logData = configure.log(logs, card.getCardLineDelimiter());
         DqParser parser;
         std::string logFilePath = parser.filePath(card.getCardPath());
