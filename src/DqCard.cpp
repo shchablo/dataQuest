@@ -212,10 +212,10 @@ std::string DqCard::getLog()
   result += cardLineDelimiter;
  
   // input
-  result += cardInputSymbolBeg + cardLineDelimiter;
-  for(unsigned int  i = 0; i < _input.size(); i++)
-   result += _input.at(i) + cardLineDelimiter;
-  result += cardLineDelimiter + cardInputSymbolEnd  + cardLineDelimiter;
+  //result += cardInputSymbolBeg + cardLineDelimiter;
+  //for(unsigned int  i = 0; i < _input.size(); i++)
+  // result += _input.at(i) + cardLineDelimiter;
+  //result += cardLineDelimiter + cardInputSymbolEnd  + cardLineDelimiter;
   
   result += cardLineDelimiter;
   

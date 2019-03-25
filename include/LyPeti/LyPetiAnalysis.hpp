@@ -21,9 +21,14 @@ namespace lyCB {
     double time;
     double middleTime;
     double middleStrip;
+    double firstTime;
+    double firstStrip;
     double X;
     double Y;
     std::vector<std::pair<double, double>> hits;
+    
+    std::vector<std::pair<double, double>> HR;
+    std::vector<std::pair<double, double>> LR;
   };
 }
 class LyPetiAnalysis
@@ -38,6 +43,8 @@ public:
   
   bool stripsData(std::vector<std::pair<double, double>> *data, std::string mod); 
   bool clusterBasicData(std::vector<std::pair<double, double>> *data, std::string mod); 
+  
+  std::map<int, lyCB::data> data();
   //----------------------------------------------------------------------------
 
   bool setParams(std::map<std::string, double> params);
@@ -69,7 +76,7 @@ public:
   bool stripsEfficiency(std::string mod); 
   bool clusterBasicEfficiency(std::string mod);
   
-  bool noise(double* n, double* eN, std::string mod);
+  bool noise(double* n, double* eN, double strip, std::string mod);
   
   bool offSetTime(int refStrip, std::vector<std::pair<double, double>>* data,
                                 std::vector<std::pair<double, double>>* dataAND,
@@ -83,6 +90,7 @@ public:
   bool maxTime(double* time, std::string mod); 
   bool filterXtalk(std::vector<std::pair<int, int>>* iHR,
                    std::vector<std::pair<int, int>>* iLR); 
+  
   //----------------------------------------------------------------------------
 
   bool isOffSet(std::string mod);
@@ -94,7 +102,7 @@ public:
                                 std::vector<std::pair<double, double>>* output); 
   bool dataFillLR(std::vector<std::pair<int, int>>* iLR,
              std::vector<std::pair<double, double>>* output);
-  bool  dataFillAndOr(std::vector<std::pair<int, int>>* iHR,
+  bool dataFillAndOr(std::vector<std::pair<int, int>>* iHR,
                                    std::vector<std::pair<int, int>>* iLR,
                                    std::vector<std::pair<double, double>>* notHR, 
                                    std::vector<std::pair<double, double>>* notLR, 
@@ -110,7 +118,11 @@ public:
   int centralStrip(std::vector<std::pair<double, double>>* strips); 
   double middleTimeCB(std::vector<std::pair<double, double>>* strips); 
   double middleStripCB(std::vector<std::pair<double, double>>* strips); 
+  double firstTimeCB(std::vector<std::pair<double, double>>* strips); 
+  double firstStripCB(std::vector<std::pair<double, double>>* strips); 
+  double centralStripCB(std::vector<std::pair<double, double>>* strips); 
   std::vector<double> clustersTimesCB(std::vector<std::pair<double, double>>* strips); 
+  double centralTimeCB(std::vector<std::pair<double, double>>* strips); 
   //----------------------------------------------------------------------------
   
   bool fillEvents(std::string radius, unsigned int js, unsigned int jr); 
@@ -131,6 +143,8 @@ public:
 protected:
  
   std::map<int, double> _offsets;
+  std::map<int, double> _offsetsHR;
+  std::map<int, double> _offsetsLR;
   bool _isSkipEvent;
   int _numberOfEvents;
 

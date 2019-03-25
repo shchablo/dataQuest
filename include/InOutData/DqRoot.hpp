@@ -5,6 +5,7 @@
 #define DQROOT_h
 
 /* ROOT includes */
+# include <TApplication.h>
 #include <TROOT.h>
 #include <TFile.h>
 #include <TTree.h>
@@ -21,6 +22,8 @@
 #include <TMultiGraph.h>
 #include <TGraph.h>
 #include <TMath.h>
+#include <TLatex.h>
+#include <TPaveStats.h>
 //------------------------------------------------------------------------------
 
 /* DQ includes */
@@ -29,6 +32,7 @@
 #include "DqTH2D.hpp"
 #include "DqTH1D.hpp"
 #include "DqTGE.hpp"
+#include "DqMTGE.hpp"
 //------------------------------------------------------------------------------
 
 /* C++ includes */
@@ -61,15 +65,18 @@ public:
                              std::map<std::string, std::string>* params);
   
   bool writeObject(std::string dirName, TObject* object);
-	bool writeTH1toCanvasCMS(std::string path, TH1* object, bool isCanvas);
+  bool writeCanvas(std::string dirName, TCanvas* canvas);
+  bool writeTH1toCanvasCMS(std::string path, TH1* object, TF1 *fit,  bool isCanvas);
 	bool writeDqTGEtoCanvasCMS(std::string path, DqTGE* object, bool isCanvas);
+	bool writeDqMTGEtoCanvasCMS(std::string path, DqMTGE* object, bool isCanvas);
 	bool writeTH2toCanvasCMS(std::string path, TH2* object, bool isCanvas);
   bool writeTMGtoCanvasCMS(std::string path, std::vector<TH1>* objects, bool isCanvas);
   //----------------------------------------------------------------------------
 
   std::map<std::string, DqTH2D>::iterator addDqTH2D(std::string name, std::map<std::string, DqTH2D>* dqTH2Ds);
   std::map<std::string, DqTH1D>::iterator addDqTH1D(std::string name, std::map<std::string, DqTH1D>* dqTH1Ds);
-  std::map<std::string, DqTGE*>::iterator  addDqTGE(std::string name, std::map<std::string, DqTGE*>* dqTGEs);
+  std::map<std::string, DqTGE*>::iterator addDqTGE(std::string name, std::map<std::string, DqTGE*>* dqTGEs);
+  std::map<std::string, DqMTGE*>::iterator addDqMTGE(std::string name, std::map<std::string, DqMTGE*>* dqMTGEs);
   //----------------------------------------------------------------------------
 protected:
 

@@ -17,27 +17,27 @@ public:
          Int_t nbinsy, Double_t ylow, Double_t yup):TH2D(name, title, nbinsx, xlow, xup, nbinsy, ylow, yup) {
     _isConfig = false;
     _modX = "default";
-    _modXStr = "_modX";
-    _begXStr = "_begX";
-    _endXStr = "_endX";
-    _sizeXStr = "_sizeX";
-    _titleXstr = "_titleX";
+    _modXStr = "&modX";
+    _begXStr = "&begX";
+    _endXStr = "&endX";
+    _sizeXStr = "&sizeX";
+    _titleXstr = "&titleX";
     
     _modY = "default";
-    _modYStr = "_modY";
-    _begYStr = "_begY";
-    _endYStr = "_endY";
-    _sizeYStr = "_sizeY";
-    _titleYstr = "_titleY";
+    _modYStr = "&modY";
+    _begYStr = "&begY";
+    _endYStr = "&endY";
+    _sizeYStr = "&sizeY";
+    _titleYstr = "&titleY";
     
-    _titleZstr = "_titleZ";
+    _titleZstr = "&titleZ";
     _chamber = 0;
     _sizeX = 0; _isSizeX = true;
-    _begX = 1; _isBegX = true;
-    _endX = -1; _isEndX = true;
+    _begX = std::numeric_limits<double>::max(); _isBegX = true;
+    _endX = std::numeric_limits<double>::lowest(); _isEndX = true;
     _sizeY = 0; _isSizeY = true;
-    _begY = 1; _isBegY = true;
-    _endY = -1; _isEndY = true;
+    _begY = std::numeric_limits<double>::max(); _isBegY = true;
+    _endY = std::numeric_limits<double>::lowest(); _isEndY = true;
   }
   virtual ~DqTH2D();
   bool config(std::string name, std::map<std::string, std::string>* params);

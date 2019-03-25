@@ -35,8 +35,8 @@ bool MyRoot::TGraphErrorsTable()
   // Configure Params
   
   std::vector<std::string> parserArrayDelimiters;
-  parserArrayDelimiters.push_back(this->findParam("sys_DqParser_AD_1", &_params));
-  parserArrayDelimiters.push_back(this->findParam("sys_DqParser_AD_2", &_params));
+  parserArrayDelimiters.push_back(this->findParam("sys&DqParser&AD&1", &_params));
+  parserArrayDelimiters.push_back(this->findParam("sys&DqParser&AD&2", &_params));
   DqParser parser; parser.setArrayDelimiter(parserArrayDelimiters);
   
   std::string dataFormat;

@@ -95,16 +95,16 @@ bool DqTH2D::setting(double valueX, double valueY)
   //----------------------------------------------------------------------------
   // Size of bins for strips --------------------------------------------------- 
   if(_modX == "strips") {
-    if(valueX <= _begX && _isBegX)
-      _begX = valueX;
-    if(valueX > _endX && _isEndX)
-      _endX = valueX;
+//    if(valueX <= _begX && _isBegX)
+//      _begX = valueX;
+//    if(valueX > _endX && _isEndX)
+//      _endX = valueX;
   }
   if(_modY == "strips") {
-    if(valueY <= _begY && _isBegY)
-      _begY = valueY;
-    if(valueY > _endY && _isEndY)
-      _endY = valueY;
+//    if(valueY <= _begY && _isBegY)
+//      _begY = valueY;
+//    if(valueY > _endY && _isEndY)
+//      _endY = valueY;
   }
   //----------------------------------------------------------------------------
   
@@ -146,14 +146,14 @@ bool DqTH2D::setting()
   }
   if(_modX == "rice") { 
     if(_isSizeX)
-      _sizeX = (int)(2*pow(_sizeX, 0.333));
-    _begX = _begX - std::abs(_endX-_begX)/_sizeX/2;
-    _endX = _endX + std::abs(_endX-_begX)/_sizeX/2;
+      _sizeX = (int)(6*2*pow(_sizeX, 0.333));
+    _begX = 1;
+    _endX = -1;
   }
   if(_modX == "strips") {
-      _begX = _begX + _chamber - 0.5;
+      _sizeX = std::abs(_endX - _begX) + 1;
+      _begX = _begX - 0.5;
       _endX = _endX + 0.5;
-      _sizeX = std::abs(_endX - _begX);
   }
   //Y
   if(_modY == "default") {
@@ -166,14 +166,14 @@ bool DqTH2D::setting()
   }
   if(_modY == "rice") { 
     if(_isSizeY)
-      _sizeY = (int)(2*pow(_sizeY, 0.333));
-      _begY = _begY - std::abs(_endY-_begY)/_sizeY/2;
-      _endY = _endY + std::abs(_endY-_begY)/_sizeY/2;
+      _sizeY = (int)(6*2*pow(_sizeY, 0.333));
+      _begY = 1;
+      _endY = -1;
   }
   if(_modY == "strips") {
-      _begY = _begY + _chamber - 0.5;
+      _sizeY = std::abs(_endY - _begY) + 1;
+      _begY = _begY - 0.5;
       _endY = _endY + 0.5;
-      _sizeY = std::abs(_endY - _begY);
   }
   //----------------------------------------------------------------------------
  

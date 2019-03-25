@@ -41,7 +41,7 @@ std::string DqAnalysis::getLogSymbol()
 bool DqAnalysis::dropLog(std::map<std::string, std::string>* params) 
 {
   std::string param;
-  param = this->findParam("drop_log", params);
+  param = this->findParam("drop&log", params);
   if(param == "0")
     return false;
   else

@@ -2,6 +2,9 @@
 
 DqTH1D::~DqTH1D()
 {
+//  if(_fitFunction != 0)
+//    delete _fitFunction;
+
 }
 
 bool DqTH1D::config(std::string name, std::map<std::string, std::string>* params)
@@ -60,15 +63,15 @@ bool DqTH1D::setting(double value)
   //----------------------------------------------------------------------------
   // Size of bins for strips --------------------------------------------------- 
   if(_mod == "strips") {
-    if(value <= _beg && _isBeg)
-      _beg = value;
-    if(value > _end && _isEnd)
-      _end = value;
+//    if(value <= _beg && _isBeg)
+//      _beg = value;
+//    if(value > _end && _isEnd)
+//      _end = value;
   }
   //----------------------------------------------------------------------------
   
   // Rice Rule FILLING ----------------------------------------------------- 
-  else if(_mod == "rice") {
+  if(_mod == "rice") {
     if(value <= _beg && _isBeg)
       _beg = value;
     if(value > _end && _isEnd)
@@ -87,7 +90,13 @@ bool DqTH1D::setting()
  
   // Rice Rule CALCULATION ------------------------------------------------- 
   if(_mod == "default") {
-    if((1000 > (int)std::abs(_end - _beg)) && _isSize) {
+    if(_beg == std::numeric_limits<double>::max() ||
+       _end == std::numeric_limits<double>::lowest()) {
+      _beg = -1;
+      _end = 1;
+      _size = 1000;
+    }
+    else if((1000 > (int)std::abs(_end - _beg)) && _isSize) {
       _size = std::abs(_end - _beg);
     }
     else if(_isSize)
@@ -95,19 +104,43 @@ bool DqTH1D::setting()
     _beg = _beg - std::abs(_end-_beg)/_size/2;
     _end = _end + std::abs(_end-_beg)/_size/2;
   }
+
   if(_mod == "rice") { 
     if(_isSize)
-      _size = (int)(2*pow(_size, 0.333));
-      _beg = _beg - std::abs(_end-_beg)/_size/2;
-      _end = _end + std::abs(_end-_beg)/_size/2;
+      _size = (int)(6*2*pow(_size, 0.333));
+      _beg = 1; _end = -1;
   }
+
   if(_mod == "strips") {
       _size = std::abs(_end - _beg) + 1;
       _beg = _beg - 0.5;
       _end = _end + 0.5;
   }
   //----------------------------------------------------------------------------
-  
+ 
   this->SetBins(_size, _beg, _end);
   return true;
+}
+
+std::map<std::string, double> DqTH1D::fit(std::string function, std::map<std::string, double> *args) 
+{
+  std::map<std::string, double> results; 
+  if(function == "gaus") {
+    double nRMS = 3; 
+    auto it = args->find("nRMS");
+    if(it != args->end())
+      nRMS = it->second;
+    double mean  = this->GetMean();
+    double RMS  = this->GetRMS();
+    TF1 *fitFunction = new TF1(Form("fit_%s", this->GetName()), "gaus",  mean - nRMS*RMS, mean + nRMS*RMS);
+    this->Fit(Form("fit_%s", this->GetName()), "QR");
+	_fitFunction = this->GetFunction(fitFunction->GetName());
+  }
+  else
+    return results;
+  return results;
+}
+TF1 *DqTH1D::getFit()
+{	
+	return _fitFunction;
 }

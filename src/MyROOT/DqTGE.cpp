@@ -113,9 +113,11 @@ bool DqTGE::print(std::string mod)
 }
 bool DqTGE::print(std::vector<std::string> *lines)
 {
-	  for(unsigned int i = 0; i < _y.size(); i++)
-      //lines->push_back(std::to_string(_y.at(i)));		
-  		std::cout << std::setprecision(9) << _x.at(i) << "\t" << _y.at(i) << "\t" << _ey.at(i) << std::endl;
+	  for(unsigned int i = 0; i < _y.size(); i++) {
+      std::string line = std::to_string(_x.at(i)) + " " + std::to_string(_ex.at(i)) + " " + std::to_string(_y.at(i)) + " " + std::to_string(_ey.at(i)); 
+      lines->push_back(line);		
+  		//std::cout << std::setprecision(9) << _x.at(i) << "\t" << _y.at(i) << "\t" << _ey.at(i) << std::endl;
+    }
   return true;
 }
 

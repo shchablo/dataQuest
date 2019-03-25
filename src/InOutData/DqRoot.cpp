@@ -4,29 +4,24 @@
 //------------------------------------------------------------------------------
 DqRoot::DqRoot()
 {
-    isOutFile_ = false;
+  gROOT->ProcessLine( "gErrorIgnoreLevel = 1001;");
+  gROOT->ProcessLine( "gErrorIgnoreLevel = 2001;");
+  gROOT->ProcessLine( "gErrorIgnoreLevel = 2001;");
+isOutFile_ = false;
 }
 
 DqRoot::~DqRoot()
 {
   if(isOutFile_) {
-    outTree_->Delete();
-    outFile_->Close();
-    outFile_->Delete();
+  	 outTree_->Delete();
+		 outFile_->Close();
+		 outFile_->Delete();
   }
 }
 //------------------------------------------------------------------------------
 
 /* Set functions. */ 
 //------------------------------------------------------------------------------
-/*! \fn setOutputFile
-* \brief Function for set output file.
-*
-* \param  char* outputFileName - path to the file and name of file
-* \param  char* outputTreeName - name of tree
-*
-* \return bool - check tag
-*/
 bool DqRoot::setOutputFile(std::string outputFileName, std::string outputTreeName)
 {
   outFile_ = new TFile(outputFileName.c_str(), "UPDATE");
@@ -39,18 +34,11 @@ bool DqRoot::setOutputFile(std::string outputFileName, std::string outputTreeNam
   return true;
 }
 
-/*! \fn setBranch
-* \brief Function for ser output branch for tree.
-*
-* \param  double *data - pointer of variable of data
-* \param  string branchName - neame of branch
-* \return bool - check tag
-*/
 bool DqRoot::setBranch(double *data, std::string branchName)
 {
   if(!isOutFile_)
     return false;
-  outTree_->Branch(branchName.c_str(), &data, branchName.c_str());
+  //outTree_->Branch(branchName.c_str(), &data, branchName.c_str());
   return true;
 }
 //------------------------------------------------------------------------------
@@ -72,30 +60,22 @@ bool DqRoot::writeObject(std::string dirName, TObject *object)
   object->Write();
   return true;
 }
-
-bool DqRoot::writeTH1toCanvasCMS(std::string path, TH1* object, bool isCanvas)
+bool DqRoot::writeCanvas(std::string dirName, TCanvas* canvas)
 {
-  TCanvas *c1 = new TCanvas(Form("c_%s", object->GetName()), Form("%s", object->GetName()));
-	object->GetXaxis()->SetTitleOffset(0.7);
-	object->GetXaxis()->SetTitleSize(0.05);
-	object->GetYaxis()->SetTitleOffset(0.7);
-	object->GetYaxis()->SetTitleSize(0.05);
-  object->SetFillColor(4);
-  object->Draw();
-  TString tsPath(path.c_str());
-  const char* cDirName = tsPath.Data();
-  if(isCanvas) {
-	  c1->SetCanvasSize(900, 600);
-	  c1->SetWindowSize(900, 600);
-	  c1->SetGrid();
-    TString c1Path((path + "/CMS/").c_str());
-    const char* c1DirName = c1Path.Data();
-	  this->writeObject(c1DirName, c1);
+  if(!outFile_->GetDirectory(dirName.c_str())) {
+    outFile_->mkdir(dirName.c_str());
+    outFile_->cd(dirName.c_str());
   }
-	this->writeObject(cDirName, object);
-	delete c1;
-	return true;
+  else
+    outFile_->cd(dirName.c_str());
+
+ // if(outFile_->FindObject(object->GetName()))
+ //   return false;
+
+  canvas->Write();
+  return true;
 }
+
 bool DqRoot::writeDqTGEtoCanvasCMS(std::string path, DqTGE* object, bool isCanvas)
 {
 	TCanvas *c1 = new TCanvas(Form("c_%s", object->GetName()), Form("%s", object->GetName()));
@@ -119,6 +99,101 @@ bool DqRoot::writeDqTGEtoCanvasCMS(std::string path, DqTGE* object, bool isCanva
   }
 	this->writeObject(cDirName, object);
   delete c1;
+	return true;
+}
+bool DqRoot::writeDqMTGEtoCanvasCMS(std::string path, DqMTGE* object, bool isCanvas)
+{
+	TCanvas *c1 = new TCanvas(Form("c_%s", object->GetName()), Form("%s", object->GetName()));
+	object->GetXaxis()->SetTitleOffset(0.7);
+	object->GetXaxis()->SetTitleSize(0.05);
+	//object->GetXaxis()->SetTitle(object->getTitleX().c_str());
+	object->GetYaxis()->SetTitleOffset(0.7);
+	object->GetYaxis()->SetTitleSize(0.05);
+	//object->GetYaxis()->SetTitle(object->getTitleY().c_str());
+  object->Draw("AP");
+  TString tsPath(path.c_str());
+  const char* cDirName = tsPath.Data();
+  if(isCanvas) {
+	  c1->SetCanvasSize(700, 600);
+	  c1->SetWindowSize(700, 600);
+	  c1->SetGrid();
+    TString c1Path((path + "/CMS/").c_str());
+    const char* c1DirName = c1Path.Data();
+	  this->writeObject(c1DirName, c1);
+  }
+	this->writeObject(cDirName, object);
+  delete c1;
+	return true;
+}
+bool DqRoot::writeTH1toCanvasCMS(std::string path, TH1* object, TF1 *fit,  bool isCanvas)
+{
+  TCanvas *c1 = new TCanvas(Form("c_%s", object->GetName()), Form("%s", object->GetName()));
+	object->GetXaxis()->SetTitleOffset(1);
+	object->GetXaxis()->SetTitleSize(0.06);
+	object->GetXaxis()->SetLabelSize(0.05);
+	object->GetYaxis()->SetTitleOffset(1);
+	object->GetYaxis()->SetTitleSize(0.06);
+	object->GetYaxis()->SetLabelSize(0.05);
+  object->SetFillColor(4);
+  TString tsPath(path.c_str());
+  const char* cDirName = tsPath.Data();
+	this->writeObject(cDirName, object);
+  if(isCanvas) {
+		
+		if(fit != 0) { 
+			object->Fit(fit, "Q");
+			fit->SetTitle("");
+ 		}
+		object->Draw();
+  	object->SetFillColor(4);
+		object->SetTitle("");
+	  c1->SetCanvasSize(800, 600);
+		c1->SetFillColor(0);
+    c1->SetBorderMode(0);
+    c1->SetBorderSize(2);
+    c1->SetLeftMargin(0.17);
+    c1->SetRightMargin(0.048);
+    c1->SetTopMargin(0.07);
+    c1->SetBottomMargin(0.14);
+    c1->SetFrameFillStyle(0);
+    c1->SetFrameBorderMode(0);
+    c1->SetFrameFillStyle(0);
+    c1->SetFrameBorderMode(0);
+    
+ 		TLatex * tex = new TLatex(0.17,0.94,"");
+    tex->SetNDC();
+    tex->SetTextFont(42);
+    tex->SetLineWidth(2);
+    tex->Draw();
+    // ---
+		tex = new TLatex(0.17,0.94,"CMS");
+    tex->SetNDC();
+    tex->SetTextSize(0.06);
+    tex->SetLineWidth(2);
+    tex->Draw();
+    tex = new TLatex(0.27,0.973,"Preliminary");
+    tex->SetNDC();
+    tex->SetTextAlign(13);
+    tex->SetTextFont(52);
+    tex->SetTextSize(0.0456);
+    tex->SetLineWidth(2);
+    tex->Draw();
+    
+    tex = new TLatex(0.952,0.94,"");
+    tex->SetNDC();
+    tex->SetTextAlign(31);
+    tex->SetTextFont(42);
+    tex->SetLineWidth(2);
+    tex->Draw();
+		// ---
+	  //c1->SetGrid();
+
+		c1->Update();
+    TString c1Path((path + "/CMS/").c_str());
+    const char* c1DirName = c1Path.Data();
+	  this->writeCanvas(c1DirName, c1);
+  }
+	delete c1;
 	return true;
 }
 bool DqRoot::writeTH2toCanvasCMS(std::string path, TH2* object, bool isCanvas)
@@ -203,6 +278,15 @@ std::map<std::string, DqTGE*>::iterator DqRoot::addDqTGE(std::string name, std::
     if(it == dqTGEs->end()) {
       dqTGEs->insert(std::make_pair(name, new DqTGE{Form("gr_%s", name.c_str()), Form("%s", name.c_str())}));
       it = dqTGEs->find(name.c_str());
+    }
+    return it;
+}
+std::map<std::string, DqMTGE*>::iterator DqRoot::addDqMTGE(std::string name, std::map<std::string, DqMTGE*>* dqMTGEs)
+{
+    auto it = dqMTGEs->find(name.c_str());
+    if(it == dqMTGEs->end()) {
+      dqMTGEs->insert(std::make_pair(name, new DqMTGE{Form("gr_%s", name.c_str()), Form("%s", name.c_str())}));
+      it = dqMTGEs->find(name.c_str());
     }
     return it;
 }

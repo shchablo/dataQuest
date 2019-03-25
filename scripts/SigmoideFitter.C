@@ -1,55 +1,10 @@
-//void SigmoideFitter(string fileIn){
-void SigmoideFitter() {
+void SigmoideFitter(TGraphErrors* efficiency) {
 
-  string fileIn = "fitData";
-  TGraphErrors* efficiency = new TGraphErrors();
-
-  // open a file in read mode.
-
-  //string fileInName("results/Sigmoids/");
-  //fileInName = fileInName + "" + fileIn + "fitData.txt";
-  string fileInName = "fitData.txt";
-  
-  cout << fileInName.c_str() << endl;
-  string sHV, sEff, sEff_Err, line, sTitle;
-  float HV, Eff, Eff_Err, HVmin, HVmax;
-
-
-  int i = -2;
-  ifstream readFile(fileInName.c_str());
-
-
-  
-  while(getline(readFile,line))   {
-    if (i == -2){
-      i++;
-      sTitle=line;
-      continue;
-    }
-      i++;
-      stringstream iss(line);
-      getline(iss, sHV, '\t');
-      getline(iss, sEff, '\t');
-      getline(iss, sEff_Err, '\t');
-      
-      istringstream fsHV(sHV); fsHV >> HV;
-      istringstream fsEff(sEff); fsEff >> Eff;
-      istringstream fsEff_Err(sEff_Err); fsEff_Err >> Eff_Err;
-      
-      cout << "At " << sHV.c_str() << " eff = " <<  sEff.c_str() << " #pm " << sEff_Err.c_str() << endl;
-      
-      efficiency->SetPoint(i,HV, Eff);
-      efficiency->SetPointError(i,1e-3, Eff_Err);
-      if (i == 0) HVmin = HV;
-
-  }
+  float HVmin, HVmax; 
 
   HVmax = HV;
 
-  readFile.close();
-  
-
- TF1* sigmoid = new TF1("sigmoid","[0]/(1+exp([1]*([2]-x)))",HVmin - 100,HVmax + 100);
+ TF1* sigmoid = new TF1("sigmoid","[0]/(1+exp([1]*([2]-x)))",HVmin - 100, HVmax + 100);
  sigmoid->SetParName(0,"#epsilon_{max}");
  sigmoid->SetParName(1,"#lambda");
  sigmoid->SetParName(2,"HV_{50%}");
@@ -57,13 +12,8 @@ void SigmoideFitter() {
  sigmoid->SetParameter(1,0.01);
  sigmoid->SetParameter(2,7500);
 
-            //****************************************************
+  efficiency->Fit(sigmoid);
 
-
-//efficiency->Fit(sigmoid);
-
-efficiency->SetMarkerStyle(22);
-efficiency->SetMarkerSize(2);
 
  sTitle = sTitle + "; HVeff; Eff";
  TH1D* Plotter = new TH1D("Plotter", sTitle.c_str(), 1, HVmin-100,HVmax+100);

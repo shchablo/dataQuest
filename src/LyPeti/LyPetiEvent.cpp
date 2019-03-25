@@ -86,7 +86,7 @@ bool LyPetiEvent::fill(std::vector<zdaq::buffer*>* buffers) {
 
       _headers.at(i) = header;
 
-//      std::cout << "number=" << header.number << " board=" << header.boardID << " numOfCh=" << header.numOfCh << std::endl; 
+     // std::cout << "number=" << header.number << " board=" << header.boardID << " numOfCh=" << header.numOfCh << std::endl; 
 	    if(ibuf[6] > 0) {
 		    uint8_t* cbuf = ( uint8_t*)&ibuf[7];
 		    for(unsigned int j = 0; j < ibuf[6]; j++) {

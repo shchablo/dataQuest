@@ -99,17 +99,17 @@ int main(int argc, char* argv[]) {
         std::cout << analysis[i]->getLog();
       } else {
 
-       // for(unsigned int j = 0; j < outputs.size(); j++)
-       //   std::cout << "\n#OUTPUT FILE[" << j << "]: " << outputs.at(j) << "\n" << std::endl;
+        for(unsigned int j = 0; j < outputs.size(); j++)
+          std::cout << "#OUTPUT[" << j << "]: " << outputs.at(j) << "\n" << std::endl;
         std::vector<std::string> logs;
         logs.push_back(analysis[i]->getLog());
 			  bool isDropLog = analysis[i]->dropLog(&params);
+        logs.push_back(card.getLog());
+        logs.push_back(analysis[i]->getLog());
 			  if(isDropLog) { 
 			  	std::cout << configure.log(logs, card.getCardLineDelimiter());
         }
         logs.clear();
-//        logs.push_back(card.getLog());
-//        logs.push_back(analysis[i]->getLog());
         std::string logData = configure.log(logs, card.getCardLineDelimiter());
         DqParser parser;
         std::string logFilePath = parser.filePath(card.getCardPath());

@@ -6,8 +6,8 @@ DqParser::DqParser()
 {
   _arrayDelimiter.push_back(";"); // delimiter blocks
   _arrayDelimiter.push_back("-"); // list symbol (example: 4-8)
-  _arrayDelimiter.push_back("&"); // param seporatop inside name
-  _arrayDelimiter.push_back("_"); // param seporatop name and value
+  _arrayDelimiter.push_back("_"); // param seporatop inside name
+  _arrayDelimiter.push_back("&"); // param seporatop name and value
   _arrayDelimiter.push_back("*"); // tmp star
 }
 
@@ -312,7 +312,7 @@ bool DqParser::findObjectParam(std::string name, std::string* param,
                                 std::map<std::string, std::string>* params)
 {
 
-  std::string defaultName = this->chamberName(name) + "&" + this->histName(name);
+  std::string defaultName = this->chamberName(name) + "_" + this->histName(name);
   auto it = params->find(defaultName.c_str());
   if(!(it == params->end()))
     *param = params->find(defaultName.c_str())->second;
