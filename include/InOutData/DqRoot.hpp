@@ -73,10 +73,10 @@ public:
   bool writeTMGtoCanvasCMS(std::string path, std::vector<TH1>* objects, bool isCanvas);
   //----------------------------------------------------------------------------
 
-  std::map<std::string, DqTH2D>::iterator addDqTH2D(std::string name, std::map<std::string, DqTH2D>* dqTH2Ds);
-  std::map<std::string, DqTH1D>::iterator addDqTH1D(std::string name, std::map<std::string, DqTH1D>* dqTH1Ds);
-  std::map<std::string, DqTGE*>::iterator addDqTGE(std::string name, std::map<std::string, DqTGE*>* dqTGEs);
-  std::map<std::string, DqMTGE*>::iterator addDqMTGE(std::string name, std::map<std::string, DqMTGE*>* dqMTGEs);
+  std::map<std::string, DqTH2D>::iterator addDqTH2D(std::string name, std::string title, std::map<std::string, DqTH2D>* dqTH2Ds);
+  std::map<std::string, DqTH1D>::iterator addDqTH1D(std::string name, std::string title, std::map<std::string, DqTH1D>* dqTH1Ds);
+  std::map<std::string, DqTGE*>::iterator addDqTGE(std::string name, std::string title, std::map<std::string, DqTGE*>* dqTGEs);
+  std::map<std::string, DqMTGE*>::iterator addDqMTGE(std::string name, std::string title, std::map<std::string, DqMTGE*>* dqMTGEs);
   //----------------------------------------------------------------------------
 protected:
 

@@ -57,6 +57,7 @@ public:
   int getNumberEvents();
   bool getNumSkipedTrigers(double* num);
   bool getNumTrigers(double* num);
+  bool skipEvent(bool is); 
   bool skipEvent(); 
   
   bool configure();
@@ -76,7 +77,7 @@ public:
   bool stripsEfficiency(std::string mod); 
   bool clusterBasicEfficiency(std::string mod);
   
-  bool noise(double* n, double* eN, double strip, std::string mod);
+  bool noise(double* n, double* eN, int strip, int entries, std::string mod);
   
   bool offSetTime(int refStrip, std::vector<std::pair<double, double>>* data,
                                 std::vector<std::pair<double, double>>* dataAND,
@@ -131,6 +132,7 @@ public:
   bool filters(std::string radius, unsigned int js, unsigned int jr); 
   bool triger(unsigned int js);
   bool window(std::string radius, unsigned int js, unsigned int jr); 
+  bool BCID(unsigned int js); 
   //----------------------------------------------------------------------------
   
   //----------------------------------------------------------------------------
@@ -223,6 +225,9 @@ protected:
   
   double _noiseUnit; 
   double _chamberArea; 
+  double _stripArea; 
+  
+  double _newWindow; 
   // info strings
   std::string _filters;  
 };

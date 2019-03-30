@@ -1,5 +1,6 @@
 #include "DqRoot.hpp"
-
+//#include "tdrstyle.cpp"
+//#include "CMS_lumi.hpp"
 /* Constructor, destructor. */ 
 //------------------------------------------------------------------------------
 DqRoot::DqRoot()
@@ -79,13 +80,8 @@ bool DqRoot::writeCanvas(std::string dirName, TCanvas* canvas)
 bool DqRoot::writeDqTGEtoCanvasCMS(std::string path, DqTGE* object, bool isCanvas)
 {
 	TCanvas *c1 = new TCanvas(Form("c_%s", object->GetName()), Form("%s", object->GetName()));
-	object->GetXaxis()->SetTitleOffset(0.7);
-	object->GetXaxis()->SetTitleSize(0.05);
 	object->GetXaxis()->SetTitle(object->getTitleX().c_str());
-	object->GetYaxis()->SetTitleOffset(0.7);
-	object->GetYaxis()->SetTitleSize(0.05);
 	object->GetYaxis()->SetTitle(object->getTitleY().c_str());
-  object->SetMarkerStyle(20);
   object->Draw();
   TString tsPath(path.c_str());
   const char* cDirName = tsPath.Data();
@@ -104,11 +100,7 @@ bool DqRoot::writeDqTGEtoCanvasCMS(std::string path, DqTGE* object, bool isCanva
 bool DqRoot::writeDqMTGEtoCanvasCMS(std::string path, DqMTGE* object, bool isCanvas)
 {
 	TCanvas *c1 = new TCanvas(Form("c_%s", object->GetName()), Form("%s", object->GetName()));
-	object->GetXaxis()->SetTitleOffset(0.7);
-	object->GetXaxis()->SetTitleSize(0.05);
 	//object->GetXaxis()->SetTitle(object->getTitleX().c_str());
-	object->GetYaxis()->SetTitleOffset(0.7);
-	object->GetYaxis()->SetTitleSize(0.05);
 	//object->GetYaxis()->SetTitle(object->getTitleY().c_str());
   object->Draw("AP");
   TString tsPath(path.c_str());
@@ -128,12 +120,6 @@ bool DqRoot::writeDqMTGEtoCanvasCMS(std::string path, DqMTGE* object, bool isCan
 bool DqRoot::writeTH1toCanvasCMS(std::string path, TH1* object, TF1 *fit,  bool isCanvas)
 {
   TCanvas *c1 = new TCanvas(Form("c_%s", object->GetName()), Form("%s", object->GetName()));
-	object->GetXaxis()->SetTitleOffset(1);
-	object->GetXaxis()->SetTitleSize(0.06);
-	object->GetXaxis()->SetLabelSize(0.05);
-	object->GetYaxis()->SetTitleOffset(1);
-	object->GetYaxis()->SetTitleSize(0.06);
-	object->GetYaxis()->SetLabelSize(0.05);
   object->SetFillColor(4);
   TString tsPath(path.c_str());
   const char* cDirName = tsPath.Data();
@@ -199,12 +185,6 @@ bool DqRoot::writeTH1toCanvasCMS(std::string path, TH1* object, TF1 *fit,  bool 
 bool DqRoot::writeTH2toCanvasCMS(std::string path, TH2* object, bool isCanvas)
 {
 	TCanvas *c1 = new TCanvas("c_", "");
-	object->GetXaxis()->SetTitleOffset(0.7);
-	object->GetXaxis()->SetTitleSize(0.05);
-	object->GetYaxis()->SetTitleOffset(0.7);
-	object->GetYaxis()->SetTitleSize(0.05);
-	object->GetZaxis()->SetTitleOffset(0.7);
-	object->GetZaxis()->SetTitleSize(0.05);
 	object->Draw();
   TString tsPath(path.c_str());
   const char* cDirName = tsPath.Data();
@@ -226,10 +206,6 @@ bool DqRoot::writeTMGtoCanvasCMS(std::string path, std::vector<TH1>* objects, bo
 	TCanvas *c1 = new TCanvas("c_", "");
   TMultiGraph *mg = new TMultiGraph();
   for(unsigned int i = 0; i < objects->size(); i++) {
-	  objects->at(i).GetXaxis()->SetTitleOffset(0.7);
-	  objects->at(i).GetXaxis()->SetTitleSize(0.05);
-	  objects->at(i).GetYaxis()->SetTitleOffset(0.7);
-	  objects->at(i).GetYaxis()->SetTitleSize(0.05);
 	  objects->at(i).Draw(); 
   } 
   mg->Draw();
@@ -249,43 +225,43 @@ bool DqRoot::writeTMGtoCanvasCMS(std::string path, std::vector<TH1>* objects, bo
 	return true;
 }
 
-std::map<std::string, DqTH2D>::iterator DqRoot::addDqTH2D(std::string name, std::map<std::string, DqTH2D>* dqTH2Ds)
+std::map<std::string, DqTH2D>::iterator DqRoot::addDqTH2D(std::string name, std::string title, std::map<std::string, DqTH2D>* dqTH2Ds)
 {
     auto it = dqTH2Ds->find(name.c_str());
     if(it == dqTH2Ds->end()) {
       int sizeX = 1000; double begX = 1; double endX = -1;
       int sizeY = 1000; double begY = 1; double endY = -1;
       dqTH2Ds->insert(std::make_pair(name, 
-              DqTH2D{Form("h_%s", name.c_str()), Form("%s", name.c_str()), sizeX, begX, endX, sizeY, begY, endY}));
+              DqTH2D{Form("h_%s", name.c_str()), Form("%s", title.c_str()), sizeX, begX, endX, sizeY, begY, endY}));
       it = dqTH2Ds->find(name.c_str());
     }
     return it;
 }
-std::map<std::string, DqTH1D>::iterator DqRoot::addDqTH1D(std::string name, std::map<std::string, DqTH1D>* dqTH1Ds)
+std::map<std::string, DqTH1D>::iterator DqRoot::addDqTH1D(std::string name, std::string title, std::map<std::string, DqTH1D>* dqTH1Ds)
 {
     auto it = dqTH1Ds->find(name.c_str());
     if(it == dqTH1Ds->end()) {
       int size = 1000; double beg = 1; double end = -1;
       dqTH1Ds->insert(std::make_pair(name, 
-              DqTH1D{Form("h_%s", name.c_str()), Form("%s", name.c_str()), size, beg, end}));
+              DqTH1D{Form("h_%s", name.c_str()), Form("%s", title.c_str()), size, beg, end}));
       it = dqTH1Ds->find(name.c_str());
     }
     return it;
 }
-std::map<std::string, DqTGE*>::iterator DqRoot::addDqTGE(std::string name, std::map<std::string, DqTGE*>* dqTGEs)
+std::map<std::string, DqTGE*>::iterator DqRoot::addDqTGE(std::string name, std::string title, std::map<std::string, DqTGE*>* dqTGEs)
 {
     auto it = dqTGEs->find(name.c_str());
     if(it == dqTGEs->end()) {
-      dqTGEs->insert(std::make_pair(name, new DqTGE{Form("gr_%s", name.c_str()), Form("%s", name.c_str())}));
+      dqTGEs->insert(std::make_pair(name, new DqTGE{Form("gr_%s", name.c_str()), Form("%s", title.c_str())}));
       it = dqTGEs->find(name.c_str());
     }
     return it;
 }
-std::map<std::string, DqMTGE*>::iterator DqRoot::addDqMTGE(std::string name, std::map<std::string, DqMTGE*>* dqMTGEs)
+std::map<std::string, DqMTGE*>::iterator DqRoot::addDqMTGE(std::string name, std::string title, std::map<std::string, DqMTGE*>* dqMTGEs)
 {
     auto it = dqMTGEs->find(name.c_str());
     if(it == dqMTGEs->end()) {
-      dqMTGEs->insert(std::make_pair(name, new DqMTGE{Form("gr_%s", name.c_str()), Form("%s", name.c_str())}));
+      dqMTGEs->insert(std::make_pair(name, new DqMTGE{Form("gr_%s", name.c_str()), Form("%s", title.c_str())}));
       it = dqMTGEs->find(name.c_str());
     }
     return it;

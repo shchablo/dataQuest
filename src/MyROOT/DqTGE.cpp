@@ -15,7 +15,6 @@ std::string DqTGE::getTitleY()
 }
 bool DqTGE::config(std::string name, std::map<std::string, std::string>* params)
 {
-
   if(!_isConfig) {
     DqParser parser;
     std::string strParam = "";

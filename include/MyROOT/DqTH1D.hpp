@@ -31,6 +31,7 @@ public:
   }
   virtual ~DqTH1D();
   bool config(std::string name, std::map<std::string, std::string>* params);
+  bool setTitle(std::string title);
   bool setting(double value);
   bool setting();
   std::map<std::string, double> fit(std::string function, std::map<std::string, double> *args); 
