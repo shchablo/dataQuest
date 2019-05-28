@@ -11,6 +11,9 @@
 #include "DqParser.hpp"
 #include "LyPetiEvent.hpp"
 #include "DqRoot.hpp"
+#include "iRPCClusterizer.hpp"
+#include "iRPCClusterContainer.hpp"
+#include "iRPCInfo.hpp"
 
 namespace lyCB {
   struct data
@@ -39,6 +42,7 @@ public:
   LyPetiAnalysis();
   virtual ~LyPetiAnalysis();
   //----------------------------------------------------------------------------
+  std::vector<std::pair<double, std::pair<double, double>>> pairData(std::string mod);
   std::vector<std::pair<double, double>> data(std::string mod); 
   
   bool stripsData(std::vector<std::pair<double, double>> *data, std::string mod); 
@@ -79,9 +83,6 @@ public:
   
   bool noise(double* n, double* eN, int strip, int entries, std::string mod);
   
-  bool offSetTime(int refStrip, std::vector<std::pair<double, double>>* data,
-                                std::vector<std::pair<double, double>>* dataAND,
-                              std::map<int, std::vector<double>>* output, std::string mod); 
   bool multiplicity(int* mult, std::string mod); 
   bool stripsMultiplicity(int* mult, std::string mod); 
   bool clusterBasicMultiplicity(int* mult, std::string mod);
@@ -99,6 +100,9 @@ public:
   //----------------------------------------------------------------------------
   bool stripsAlgos();
   bool choiceDataFill(std::string param);
+  bool recoveryCHs(std::vector<int> deadCHs,
+                                std::vector<std::pair<double, double>>* donor, 
+                                std::vector<std::pair<double, double>>* recipient); 
   bool dataFillHR(std::vector<std::pair<int, int>>* iHR, 
                                 std::vector<std::pair<double, double>>* output); 
   bool dataFillLR(std::vector<std::pair<int, int>>* iLR,
@@ -116,6 +120,8 @@ public:
   bool clusterBasic(std::vector<std::pair<double, double>> data, std::map<int, lyCB::data>* output); 
   bool clusterBasic(std::vector<std::pair<double, double>> dataHR, std::vector<std::pair<double, double>> dataLR,  
                                 std::map<int, lyCB::data>* output, bool isOR); 
+  bool  iCluster(std::vector<std::pair<double, double>> dataHR, std::vector<std::pair<double, double>> dataLR,  
+                                  std::map<int, lyCB::data>* output); 
   int centralStrip(std::vector<std::pair<double, double>>* strips); 
   double middleTimeCB(std::vector<std::pair<double, double>>* strips); 
   double middleStripCB(std::vector<std::pair<double, double>>* strips); 
@@ -164,6 +170,7 @@ protected:
   // indexes for filtered data for one event - should be clear with function clear each event
   std::vector<std::pair<int, int>> _iHR; std::vector<std::pair<int, int>> _iNoiseHR;
   std::vector<std::pair<int, int>> _iLR; std::vector<std::pair<int, int>> _iNoiseLR;
+  std::vector<std::pair<int, int>> _iHRf; std::vector<std::pair<int, int>> _iLRf;
  
   // data for strips
   bool _isStripsFill;  bool _isNoiseFill;  
@@ -171,8 +178,11 @@ protected:
   std::vector<std::pair<double, double>> _LR; std::vector<std::pair<double, double>> _noiseLR;
   std::vector<std::pair<double, double>> _AND; std::vector<std::pair<double, double>> _noiseAND;
   std::vector<std::pair<double, double>> _OR; std::vector<std::pair<double, double>> _noiseOR;
-  std::vector<std::pair<double, double>> _notHR;
-  std::vector<std::pair<double, double>> _notLR;
+  std::vector<std::pair<double, double>> _notHR; std::vector<std::pair<double, double>> _notLR; //  outside cluster
+  std::vector<std::pair<double, double>>  _HRf; std::vector<std::pair<double, double>> _LRf; // filter
+  std::vector<std::pair<double, double>>  _ANDf;
+  
+  std::vector<std::pair<double, std::pair<double, double>>> _pairAND;
   
   int _numNoiseHitsHR; 
   int _numNoiseHitsLR; 

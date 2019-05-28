@@ -137,6 +137,9 @@ bool LyPetiEvent::fill(std::vector<zdaq::buffer*>* buffers) {
           // trigers for strips
           if(_headers.at(i).boardID == (int)it.second.at(1) && _payloads.at(i).at(j).ch == (int)it.second.at(0))
               strip.trigs.push_back(&_payloads.at(i).at(j));
+          // counter for strips
+          if(_headers.at(i).boardID == (int)it.second.at(1) && _payloads.at(i).at(j).ch == (int)it.second.at(8))
+              strip.counter.push_back(&_payloads.at(i).at(j));
           // HR
           if(_headers.at(i).boardID == (int)it.second.at(1) && _payloads.at(i).at(j).ch == it.second.at(2)) {
             strip.HR.push_back(&_payloads.at(i).at(j));
@@ -152,7 +155,6 @@ bool LyPetiEvent::fill(std::vector<zdaq::buffer*>* buffers) {
           strip.timeOffSetHR = it.second.at(3); 
           strip.timeOffSetLR = it.second.at(5); 
           strip.timeOffSet = it.second.at(6); 
-          strip.inverse = it.second.at(8); 
           auto sIt = _strips.find(it.second.at(7));
           if(sIt == _strips.end())
             _strips.insert(std::make_pair(it.second.at(7), std::vector<lyBuf::strip>{1, strip}));
@@ -197,7 +199,7 @@ bool LyPetiEvent::mapping(std::vector<int> strips,
                           std::vector<double> HR, std::vector<double> timeOffSetHR,  
                           std::vector<double> LR, std::vector<double> timeOffSetLR,
                           std::vector<double> timeOffSet,
-                          std::vector<double> inverse,
+                          std::vector<double> counter,
                           std::vector<double> chamberNum) {
 
   std::vector<int> sizes;
@@ -208,7 +210,7 @@ bool LyPetiEvent::mapping(std::vector<int> strips,
   sizes.push_back(LR.size());sizes.push_back(timeOffSetLR.size()); 
   sizes.push_back(timeOffSet.size()); 
   sizes.push_back(chamberNum.size()); 
-  sizes.push_back(inverse.size()); 
+  sizes.push_back(counter.size()); 
   if(!(count(sizes.begin(), sizes.end(), sizes[0]) == (int)sizes.size()))
     return false;
   std::vector<double> value;  
@@ -221,7 +223,7 @@ bool LyPetiEvent::mapping(std::vector<int> strips,
     value.push_back(timeOffSetLR.at(i)); // 5
     value.push_back(timeOffSet.at(i)); // 6
     value.push_back(chamberNum.at(i)); // 7
-    value.push_back(inverse.at(i)); // 8
+    value.push_back(counter.at(i)); // 8
     _map.insert(std::make_pair(strips.at(i) + chamberNum.at(i), value));
     value.clear();
   }

@@ -109,7 +109,7 @@ bool LyPeti::saveHists(int run, std::map<int, LyPetiAnalysis> *analysis, DqRoot 
       path += "/" + folder;
     else 
       path += "/withoutPath";
-    dataRoot->writeTH1toCanvasCMS(path, &profiles.second, profiles.second.getFit(), false);
+    dataRoot->writeDqToCanvasCMS(path, &profiles.second, profiles.second.getFit(), false);
   }
   for(auto profiles: *TH2s) {
     int chamberNum = -1;
@@ -132,7 +132,7 @@ bool LyPeti::saveHists(int run, std::map<int, LyPetiAnalysis> *analysis, DqRoot 
     else 
       path += "/withoutPath";
 
-    dataRoot->writeTH2toCanvasCMS(path, &profiles.second,  false);
+    dataRoot->writeDqToCanvasCMS(path, &profiles.second,  false);
   }
   
   return true;
@@ -140,7 +140,6 @@ bool LyPeti::saveHists(int run, std::map<int, LyPetiAnalysis> *analysis, DqRoot 
 bool LyPeti::saveGraphs(std::map<int, LyPetiAnalysis> *analysis, DqRoot *dataRoot,
                         std::map<std::string, DqTGE*> *TGEs)
 {
-
   for(auto profiles: *TGEs) {
  	  //profiles.second->sortByX(); 
     profiles.second->plot();
@@ -180,12 +179,12 @@ bool LyPeti::saveGraphs(std::map<int, LyPetiAnalysis> *analysis, DqRoot *dataRoo
       path += "/" + folder;
     else 
       path += "/withoutPath";
-    dataRoot->writeDqTGEtoCanvasCMS(path, profiles.second, false);
+    dataRoot->writeDqToCanvasCMS(path, profiles.second, false);
     //delete profiles.second;
   }
   return true;
 }
-bool LyPeti::saveMGraphs(std::map<int, LyPetiAnalysis> *analysis, DqRoot *dataRoot,
+bool LyPeti::saveGraphs(std::map<int, LyPetiAnalysis> *analysis, DqRoot *dataRoot,
                         std::map<std::string, DqMTGE*> *MTGEs)
 {
   for(auto profiles: *MTGEs) {
@@ -199,7 +198,26 @@ bool LyPeti::saveMGraphs(std::map<int, LyPetiAnalysis> *analysis, DqRoot *dataRo
       path += "/" + folder;
     else 
       path += "/withoutPath";
-    dataRoot->writeDqMTGEtoCanvasCMS(path, profiles.second, false);
+    dataRoot->writeDqToCanvasCMS(path, profiles.second, false);
+  }
+  return true;
+}
+bool LyPeti::saveGraphs(std::map<int, LyPetiAnalysis> *analysis, DqRoot *dataRoot,
+                        std::map<std::string, DqTG2D*> *TG2Ds)
+{
+  for(auto profiles: *TG2Ds) {
+    profiles.second->plot();
+    std::string histName = _parser.histName(profiles.first);
+    std::string path = _comment + "_" + _logRunNumber + "/analysis/chamber_" + _parser.chamberName(profiles.first); 
+    if(_comment == "webdcs")
+      path = "analysis/chamber_" + _parser.chamberName(profiles.first); 
+    std::string folder = "";
+    bool isFolder = this->findParam((histName + "&path"), &folder, &_params);
+    if(isFolder)
+      path += "/" + folder;
+    else 
+      path += "/withoutPath";
+    dataRoot->writeDqToCanvasCMS(path, profiles.second, true);
   }
   return true;
 }
@@ -255,10 +273,10 @@ bool LyPeti::initEvent(LyPetiEvent *event)
   std::vector<double> timeOffSetLR = _parser.strToDoubleArray(vsTimeOffSetLR);
   sTimeOffSetLR.clear(); vsTimeOffSetLR.clear();
   
-  std::string sInverse = this->findParam("inverse", &_params);
-  std::vector<std::string> vsInverse = _parser.parsArray(sInverse);
-  std::vector<double> inverse = _parser.strToDoubleArray(vsInverse);
-  sInverse.clear(); vsInverse.clear();
+  std::string sCounter = this->findParam("counter", &_params);
+  std::vector<std::string> vsCounter = _parser.parsArray(sCounter);
+  std::vector<double> counter = _parser.strToDoubleArray(vsCounter);
+  sCounter.clear(); vsCounter.clear();
   
   std::string sChambers = this->findParam("chambers", &_params);
   std::vector<std::string> vsChambers = _parser.parsArray(sChambers);
@@ -274,7 +292,7 @@ bool LyPeti::initEvent(LyPetiEvent *event)
                 HR, timeOffSetHR, 
                 LR, timeOffSetLR,
                 timeOffSet,
-                inverse,
+                counter,
                 chambers); // inside check map arrays.
   if(!isMap) {
       _log += " ERROR! Map isn't correct, Size of arrays are not equal!" + _rowDelimiter
@@ -286,13 +304,13 @@ bool LyPeti::initEvent(LyPetiEvent *event)
 					 + "timeOffSetHR=" + std::to_string(timeOffSetHR.size()) + parserArrayDelimiters.at(0)
 					 + "timeOffSetLR=" + std::to_string(timeOffSetLR.size()) + parserArrayDelimiters.at(0)
 					 + "timeOffSet=" + std::to_string(timeOffSet.size()) + parserArrayDelimiters.at(0)
-					 + "inverse=" + std::to_string(inverse.size()) + parserArrayDelimiters.at(0)
+					 + "counter=" + std::to_string(counter.size()) + parserArrayDelimiters.at(0)
 					 + "asciiChambers=" + std::to_string(chambers.size()) + _rowDelimiter;
       return false;
   }
   
   strips.clear(); trigCh.clear(); TDCs.clear(); chambers.clear(); 
-  HR.clear(); timeOffSetHR.clear(); LR.clear(); timeOffSetLR.clear(); timeOffSet.clear(); inverse.clear(); // clear memory (map params) 
+  HR.clear(); timeOffSetHR.clear(); LR.clear(); timeOffSetLR.clear(); timeOffSet.clear(); counter.clear(); // clear memory (map params) 
   
   // print output
   std::cout << "#---\n" << std::endl;
@@ -452,91 +470,6 @@ bool LyPeti::initAnalys(std::map<int, LyPetiAnalysis> *analysis,
   return true;
 }
 
-bool LyPeti::stripStudy(std::string mod, std::vector<std::string> *mods, 
-                  int run, LyPetiEvent *event, std::map<int, LyPetiAnalysis> *analysis,
-                  DqRoot *dataRoot,
-                  std::map<std::string, DqTGE*> *TGEs, 
-                  std::map<std::string, DqTH1D> *TH1s, 
-                  std::map<std::string, DqTH2D> *TH2s)
-{
-  std::string nameTGEs = "";    
-  auto itTGEs = TGEs->find("");
-  std::string nameTH1s = "";
-  auto itTH1s = TH1s->find("");
-  std::string nameTH2s = "";
-  auto itTH2s = TH2s->find("");
-  if(mod == "CONFIG") {
-    std::map<int, lyCB::data> chamber = analysis->find(0)->second.data();
-    for(auto& it: chamber) {
-      for(unsigned int j = 0; j < chamber.find(it.first)->second.HR.size(); j++) {
-	      //if(chamber.find(it.first)->second.HR.size() == 1 || chamber.find(it.first)->second.HR.size() == 3) {
-          double strip_HR = analysis->find(0)->second.centralStripCB(&chamber.find(it.first)->second.HR);
-          double time_HR = analysis->find(0)->second.middleTimeCB(&chamber.find(it.first)->second.HR);
-
-          nameTH1s =  Form("200_stripsHR"); 
-          itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-			    itTH1s->second.setting(strip_HR);
-	        nameTH1s =  Form("200_%1.f_TimeHR", strip_HR);  
-          itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-			    itTH1s->second.setting(time_HR);
-        //}
-      }
-      for(unsigned int j = 0; j < chamber.find(it.first)->second.LR.size(); j++) {
-	      //if(chamber.find(it.first)->second.LR.size() == 1 || chamber.find(it.first)->second.LR.size() == 3) {
-          double strip_LR = analysis->find(0)->second.centralStripCB(&chamber.find(it.first)->second.LR);
-          double time_LR = analysis->find(0)->second.middleTimeCB(&chamber.find(it.first)->second.LR);
-          
-          nameTH1s =  Form("200_stripsLR"); 
-          itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-			    itTH1s->second.setting(strip_LR);
-	        nameTH1s =  Form("200_%1.f_TimeLR", strip_LR);  
-          itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-			    itTH1s->second.setting(time_LR);
-        //}
-      }
-    }
-  }
-  if(mod == "CONFIG END") {
-    // проверка
-    for(auto& it: *TH1s) it.second.setting();
-    for(auto& it: *TH2s) it.second.setting();
-  }
-  if(mod == "ANALYSIS") {
-    std::map<int, lyCB::data> chamber = analysis->find(0)->second.data();
-    for(auto& it: chamber) {
-      for(unsigned int j = 0; j < chamber.find(it.first)->second.HR.size(); j++) {
-	      //if(chamber.find(it.first)->second.HR.size() == 1 || chamber.find(it.first)->second.HR.size() == 3) {
-          double strip_HR = analysis->find(0)->second.centralStripCB(&chamber.find(it.first)->second.HR);
-          double time_HR = analysis->find(0)->second.middleTimeCB(&chamber.find(it.first)->second.HR);
-          nameTH1s =  Form("200_stripsHR"); 
-          auto it =  TH1s->find(nameTH1s.c_str());
-          if(it != TH1s->end()) TH1s->find(nameTH1s.c_str())->second.Fill(strip_HR);
-	        nameTH1s =  Form("200_%1.f_TimeHR", strip_HR);  
-          it =  TH1s->find(nameTH1s.c_str());
-          if(it != TH1s->end()) TH1s->find(nameTH1s.c_str())->second.Fill(time_HR);
-        //}
-      }
-      for(unsigned int j = 0; j < chamber.find(it.first)->second.LR.size(); j++) {
-	      //if(chamber.find(it.first)->second.LR.size() == 1 || chamber.find(it.first)->second.LR.size() == 3) {
-          double strip_LR = analysis->find(0)->second.centralStripCB(&chamber.find(it.first)->second.LR);
-          double time_LR = analysis->find(0)->second.middleTimeCB(&chamber.find(it.first)->second.LR);
-          nameTH1s =  Form("200_stripsLR"); 
-           auto it = TH1s->find(nameTH1s.c_str());
-          if(it != TH1s->end()) TH1s->find(nameTH1s.c_str())->second.Fill(strip_LR);
-	        nameTH1s =  Form("200_%1.f_TimeLR", strip_LR);  
-          it =  TH1s->find(nameTH1s.c_str());
-          if(it != TH1s->end()) TH1s->find(nameTH1s.c_str())->second.Fill(time_LR);
-        //}
-      }
-    }
-  }
-  if(mod == "ANALYSIS END") {
-	  std::cout << "HI " << std::endl;
-  }
-  else
-    return false;
-  return true;
-}
 bool LyPeti::raw(std::string mod, LyPetiEvent *event, std::map<int, LyPetiAnalysis> *analysis, 
                  DqRoot *dataRoot, std::map<int, TTree*> *treesHR, std::map<int, TTree*> *treesLR,
                  int run, 
@@ -548,45 +481,41 @@ bool LyPeti::raw(std::string mod, LyPetiEvent *event, std::map<int, LyPetiAnalys
   if(mod == "CONFIG") {
     for(unsigned int ic = 0; ic < event->chambers()->size(); ic++) {
       int chamber = event->chambers()->at(ic); 
-      unsigned int numberOfTrigers = event->trigs(chamber)->size();
-      bool isTrigers = analysis->find(chamber)->second.fillTrigers(numberOfTrigers);
-    	if(isTrigers) {
       //std::cout << "=================================================" << std::endl;
-        for(unsigned int js = 0; js < event->strips(chamber)->size(); js++) {
-          if(event->strips(chamber)->at(js).trigs.size() == 1) {
-            for(unsigned int jh = 0; jh < event->strips(chamber)->at(js).HR.size(); jh++) {
-              *number_HR = event->strips(chamber)->at(js).trigs.at(0)->head->number;
-              
-              *ch_HR = event->strips(chamber)->at(js).number - chamber;
-              *size_HR = event->strips(chamber)->at(js).HR.size();
-              
-              *coarse_HR = event->strips(chamber)->at(js).HR.at(jh)->coarse;
-              *fine_HR = event->strips(chamber)->at(js).HR.at(jh)->fine;
-              *BCID_HR = event->strips(chamber)->at(js).HR.at(jh)->BCID;
-              
-              *time_HR = event->strips(chamber)->at(js).HR.at(jh)->time;
-              *triger_HR = event->strips(chamber)->at(js).trigs.at(0)->time;
-              *dtime_HR = event->strips(chamber)->at(js).HR.at(jh)->time -  event->strips(chamber)->at(js).trigs.at(0)->time;
-              // std::cout << std::setprecision(3) << "HR:" << *ch_HR << "|" << *time_HR << std::endl;
-              treesHR->find(chamber)->second->Fill();
-            }
-     		    for(unsigned int jl = 0; jl < event->strips(chamber)->at(js).LR.size(); jl++) {
-              *number_LR = event->strips(chamber)->at(js).trigs.at(0)->head->number;
-              
-              *ch_LR = event->strips(chamber)->at(js).number - chamber;
-              *size_LR = event->strips(chamber)->at(js).LR.size();
-              
-              *coarse_LR = event->strips(chamber)->at(js).LR.at(jl)->coarse;
-              *fine_LR = event->strips(chamber)->at(js).LR.at(jl)->fine;
-              *BCID_LR = event->strips(chamber)->at(js).LR.at(jl)->BCID;
-              
-              *time_LR = event->strips(chamber)->at(js).LR.at(jl)->time;
-              *triger_LR = event->strips(chamber)->at(js).trigs.at(0)->time;
-              *dtime_LR = event->strips(chamber)->at(js).LR.at(jl)->time -  event->strips(chamber)->at(js).trigs.at(0)->time;
-              treesLR->find(chamber)->second->Fill();
-              // std::cout << std::setprecision(3) << "130LR:" << *ch_LR << "|" << *time_LR << std::endl; 
-     		    }
+      for(unsigned int js = 0; js < event->strips(chamber)->size(); js++) {
+        if(event->strips(chamber)->at(js).trigs.size() == 1) {
+          for(unsigned int jh = 0; jh < event->strips(chamber)->at(js).HR.size(); jh++) {
+            *number_HR = event->strips(chamber)->at(js).trigs.at(0)->head->number;
+            
+            *ch_HR = event->strips(chamber)->at(js).number - chamber;
+            *size_HR = event->strips(chamber)->at(js).HR.size();
+            
+            *coarse_HR = event->strips(chamber)->at(js).HR.at(jh)->coarse*2.5;
+            *fine_HR = event->strips(chamber)->at(js).HR.at(jh)->fine/256*2.5;
+            *BCID_HR = event->strips(chamber)->at(js).HR.at(jh)->BCID;
+            
+            *time_HR = event->strips(chamber)->at(js).HR.at(jh)->time;
+            *triger_HR = event->strips(chamber)->at(js).trigs.at(0)->time;
+            *dtime_HR = event->strips(chamber)->at(js).HR.at(jh)->time -  event->strips(chamber)->at(js).trigs.at(0)->time;
+            // std::cout << std::setprecision(3) << "HR:" << *ch_HR << "|" << *time_HR << std::endl;
+            treesHR->find(chamber)->second->Fill();
           }
+     	    for(unsigned int jl = 0; jl < event->strips(chamber)->at(js).LR.size(); jl++) {
+            *number_LR = event->strips(chamber)->at(js).trigs.at(0)->head->number;
+            
+            *ch_LR = event->strips(chamber)->at(js).number - chamber;
+            *size_LR = event->strips(chamber)->at(js).LR.size();
+            
+            *coarse_LR = event->strips(chamber)->at(js).LR.at(jl)->coarse*2.5;
+            *fine_LR = event->strips(chamber)->at(js).LR.at(jl)->fine/256*2.5;
+            *BCID_LR = event->strips(chamber)->at(js).LR.at(jl)->BCID;
+            
+            *time_LR = event->strips(chamber)->at(js).LR.at(jl)->time;
+            *triger_LR = event->strips(chamber)->at(js).trigs.at(0)->time;
+            *dtime_LR = event->strips(chamber)->at(js).LR.at(jl)->time -  event->strips(chamber)->at(js).trigs.at(0)->time;
+            treesLR->find(chamber)->second->Fill();
+            // std::cout << std::setprecision(3) << "130LR:" << *ch_LR << "|" << *time_LR << std::endl; 
+     	    }
         }
     	}
     }
@@ -604,732 +533,57 @@ bool LyPeti::raw(std::string mod, LyPetiEvent *event, std::map<int, LyPetiAnalys
     return false;
   return true;
 }
-bool LyPeti::offsetChain(std::string mod, std::vector<std::string> *mods,  
-                    int run, int chamber, LyPetiEvent *event, std::map<int, LyPetiAnalysis> *analysis,
-                    DqRoot *dataRoot,
-                    std::map<std::string, DqTGE*> *TGEs, 
-                    std::map<std::string, DqTH1D> *TH1s, 
-                    std::map<std::string, DqTH2D> *TH2s)
-{
-  std::string nameTGEs = "";    
-  auto itTGEs = TGEs->find("");
-  std::string nameTH1s = "";
-  auto itTH1s = TH1s->find("");
-  std::string nameTH2s = "";
-  auto itTH2s = TH2s->find("");
-  std::map<int, double> offsets; std::map<int, double> offsetsHR; std::map<int, double> offsetsLR;
-    int size = event->chambers()->size();
-    //if(chamber > 1) size = 1;
-  if(mod ==  "OFFSET" + _strDelim + "CONFIG") {
-    for(unsigned int ic = 0; ic < size; ic++) {
-      if(size > 1) chamber = event->chambers()->at(ic);
-      chamber = event->chambers()->at(ic);
-      analysis->find(chamber)->second.setStrips(event->strips(chamber));
-      unsigned int numberOfTrigers = event->trigs(chamber)->size();
-      bool isTrigers = analysis->find(chamber)->second.fillTrigers(numberOfTrigers);
-	    if(isTrigers) {
-        for(unsigned int js = 0; js < event->strips(chamber)->size(); js++) {
-          // Fill raw data with maping. 
-          for(unsigned int jh = 0; jh < event->strips(chamber)->at(js).HR.size(); jh++) {
-            bool isFilterHR = analysis->find(chamber)->second.filters("data_HR", js, jh); 
-            if(isFilterHR) 
-              analysis->find(chamber)->second.fillEvents("data_HR", js, jh); 
-          //analysis->find(chamber)->second.filters("deadTime_HR", js, jh); // skip if deadTime 
-          }
-          for(unsigned int jl = 0; jl < event->strips(chamber)->at(js).LR.size(); jl++) {
-            bool isFilterLR = analysis->find(chamber)->second.filters("data_LR", js, jl); 
-            if(isFilterLR)
-              analysis->find(chamber)->second.fillEvents("data_LR", js, jl); 
-          //analysis->find(chamber)->second.filters("deadTime_LR", js, jl); // skip if deadTime 
-        	}
-	      }
-      }
-      if(!analysis->find(chamber)->second.skipEvent()) {  
-        // ANALYSIS PART
-        std::string filters = analysis->find(chamber)->second.filtersStr(); 
-        for(unsigned int im = 0; im < mods->size(); im++) {
-          analysis->find(chamber)->second.algos(mods->at(im));
-          std::string modParams = analysis->find(chamber)->second.modParamsStr(mods->at(im)); 
-          std::vector<std::pair<double, double>> data = analysis->find(chamber)->second.data(mods->at(im).c_str());
-          std::map<int, std::vector<double>> offSet;
-          
-          // offset
-          for(unsigned int d = 0; d < data.size(); d++) {
-            std::vector<std::pair<double, double>> dataAND = analysis->find(chamber)->second.data("AND");
-            bool isOffSet = analysis->find(chamber)->second.offSetTime(data.at(d).first, &data, &dataAND, &offSet, mods->at(im).c_str());
-            if(isOffSet) {
-              nameTH2s = Form("%d%s%s%s_%d_%s%stimeProfileStrip", chamber, filters.c_str(), modParams.c_str(), _strDelim.c_str(),  (int)data.at(d).first, _strDelim.c_str(),  mods->at(im).c_str()); 
-              for(auto& itOffSet: offSet) {
-                itTH2s = dataRoot->addDqTH2D(nameTH2s, nameTH2s, TH2s); itTH2s->second.config(nameTH2s, &_params);
-                for(unsigned int iOs = 0; iOs < itOffSet.second.size(); iOs++) {
-                  itTH2s->second.setting(itOffSet.second.at(iOs), itOffSet.first);
-                //  std::cout << itOffSet.first << " " << itOffSet.second.at(iOs) << std::endl;
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  if(mod ==  "OFFSET" + _strDelim + "CONFIG END") {
-    for(auto& it: *TH1s) it.second.setting();
-    for(auto& it: *TH2s) it.second.setting();
-  }
-  if(mod ==  "OFFSET" + _strDelim + "ANALYSIS") {
-    for(unsigned int ic = 0; ic < size; ic++) {
-      if(size > 1) chamber = event->chambers()->at(ic);
-      analysis->find(chamber)->second.setStrips(event->strips(chamber));
-      unsigned int numberOfTrigers = event->trigs(chamber)->size();
-      bool isTrigers = analysis->find(chamber)->second.fillTrigers(numberOfTrigers);
-	    if(isTrigers) {
-        for(unsigned int js = 0; js < event->strips(chamber)->size(); js++) {
-          for(unsigned int jh = 0; jh < event->strips(chamber)->at(js).HR.size(); jh++) {
-            bool isFilterHR = analysis->find(chamber)->second.filters("data_HR", js, jh); 
-            if(isFilterHR)
-              analysis->find(chamber)->second.fillEvents("data_HR", js, jh); 
-            //analysis->find(chamber)->second.filters("deadTime_HR", js, jh); // skip if deadTime 
-          }
-          // LR
-      	  for(unsigned int jl = 0; jl < event->strips(chamber)->at(js).LR.size(); jl++) {
-            bool isFilterLR = analysis->find(chamber)->second.filters("data_LR", js, jl); 
-            if(isFilterLR)
-              analysis->find(chamber)->second.fillEvents("data_LR", js, jl); 
-            //analysis->find(chamber)->second.filters("deadTime_LR", js, jl); // skip if deadTime 
-      	  }
-        }
-	    }
-      if(!analysis->find(chamber)->second.skipEvent()) {  
-        // ANALYSIS PART
-        std::string filters = analysis->find(chamber)->second.filtersStr(); 
-        for(unsigned int im = 0; im < mods->size(); im++) {
-          analysis->find(chamber)->second.algos(mods->at(im));
-          std::string modParams = analysis->find(chamber)->second.modParamsStr(mods->at(im)); 
-          std::vector<std::pair<double, double>> data = analysis->find(chamber)->second.data(mods->at(im).c_str());
-          
-          // offset
-          for(unsigned int d = 0; d < data.size(); d++) {
-            std::map<int, std::vector<double>> offSet;
-            std::vector<std::pair<double, double>> dataAND = analysis->find(chamber)->second.data("AND");
-            bool isOffSet = analysis->find(chamber)->second.offSetTime(data.at(d).first, &data, &dataAND, &offSet, mods->at(im).c_str());
-            if(isOffSet) {
-              nameTH2s = Form("%d%s%s%s_%d_%s%stimeProfileStrip", chamber, filters.c_str(), modParams.c_str(), _strDelim.c_str(),  (int)data.at(d).first, _strDelim.c_str(),  mods->at(im).c_str()); 
-              for(auto& itOffSet: offSet) {
-                for(unsigned int iOs = 0; iOs < itOffSet.second.size(); iOs++) {
-                  auto it = TH2s->find(nameTH2s.c_str()); if(it != TH2s->end())
-                    TH2s->find(nameTH2s.c_str())->second.Fill(itOffSet.second.at(iOs), itOffSet.first);
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  if(mod ==  "OFFSET" + _strDelim + "ANALYSIS END") {
-    for(unsigned int ic = 0; ic < size; ic++) {
-      if(size > 1) chamber = event->chambers()->at(ic);
-      std::string filters = analysis->find(chamber)->second.filtersStr(); 
-      for(unsigned int im = 0; im < mods->size(); im++) {
-        std::string modParams = analysis->find(chamber)->second.modParamsStr(mods->at(im)); 
-        std::string name = _parser.last(mods->at(im));
-        std::string param = _parser.first(mods->at(im));
-        if((name == "HR" || name == "LR")) {
-          int strips = event->numberOfStrips(chamber);
-          int thrEntries = 10;
-          double refStrip = 0;
-          nameTH1s = Form("%d%sTimeWalk", chamber, _strDelim.c_str());
-          itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-          for(int s = 0; s < strips; s++) {
-	    	    double value = analysis->find(chamber)->second.getValue(run);
-            if(s%2==0) {
-                if(chamber == 1000) refStrip = 22;
-                if(chamber == 0) refStrip = 30;
-            }
-            else {
-                if(chamber == 1000) refStrip = 23;
-                if(chamber == 0) refStrip = 31;
-            }
-            nameTH2s = Form("%d%s%s%s_%d_%s%stimeProfileStrip", chamber, filters.c_str(), modParams.c_str(), _strDelim.c_str(),  s+chamber, _strDelim.c_str(),  mods->at(im).c_str()); 
-            auto itOffSetMean = TH2s->find(nameTH2s);
-            if(!(itOffSetMean == TH2s->end())) {
-              if(s < strips - 2 && s > 1 &&
-                  itOffSetMean->second.ProjectionX("hX", s-1, s-1, "")->GetEntries() >= thrEntries &&
-                 itOffSetMean->second.ProjectionX("hXX", s+1, s+1, "")->GetEntries() >= thrEntries ) {
-                TH1D * s1 = itOffSetMean->second.ProjectionX("h1", s-1, s-1, "");
-                double pMean  = s1->GetMean();
-                double pRMS  = s1->GetRMS();
-                std::cout << pMean << std::endl;
-                TF1* sg1 = new TF1("sg", "gaus",  pMean - 3*pRMS, pMean + 3*pRMS);
-                s1->Fit("sg", "QS");
-                TH1D * s2 = itOffSetMean->second.ProjectionX("h2", s+1, s+1, "");
-                pMean  = s2->GetMean();
-                pRMS  = s2->GetRMS();
-                TF1* sg2 = new TF1("sg2", "gaus",  pMean - 3*pRMS, pMean + 3*pRMS);
-                s2->Fit("sg2", "QS");
-                nameTH1s = Form("%d%sTimeWalk", chamber, _strDelim.c_str());
-                TH1s->find(nameTH1s.c_str())->second.Fill(sg1->GetParameter(1));
-                TH1s->find(nameTH1s.c_str())->second.Fill(sg2->GetParameter(1));
-                delete sg2; delete sg1; delete s1; delete s2;
-              }
-            }
-            
-            double offSet = 0;
-            double eOffSet = 0;
-            for(int is = s+1; is < refStrip; is=is+2) {
-              nameTH2s = Form("%d%s%s%s_%d_%s%stimeProfileStrip", chamber, filters.c_str(), modParams.c_str(), _strDelim.c_str(),  is+chamber, _strDelim.c_str(),  mods->at(im).c_str()); 
-              auto itOffSet = TH2s->find(nameTH2s);
-              if(!(itOffSet == TH2s->end())) {
-                if(itOffSet->second.ProjectionX("h", is, is, "")->GetEntries() <= thrEntries) {
-                   offSet = 0; break;
-                }
-                else {
-                TH1D * projh2X = itOffSet->second.ProjectionX("h", is, is, "");
-                double pMean  = projh2X->GetMean();
-                double pRMS  = projh2X->GetRMS();
-                TF1* g1 = new TF1("g", "gaus",  pMean - 6*pRMS, pMean + 6*pRMS);
-                projh2X->Fit("g", "QS");
-                //offSet = offSet - projh2X->GetMean();
-                offSet = offSet + g1->GetParameter(1);
-                delete projh2X;
-                delete g1;
-                }
-              }
-              else
-                break;
-            }
-            for(int is = s-1; is > refStrip; is = is - 2) { 
-              nameTH2s = Form("%d%s%s%s_%d_%s%stimeProfileStrip", chamber, filters.c_str(), modParams.c_str(), _strDelim.c_str(),  is+chamber, _strDelim.c_str(),  mods->at(im).c_str()); 
-              auto itOffSet = TH2s->find(nameTH2s);
-              if(!(itOffSet == TH2s->end())) {
-                if(itOffSet->second.ProjectionX("h", is, is, "")->GetEntries() <= thrEntries) {
-                   offSet = 0; break;
-                }
-                else {
-                TH1D * projh2X = itOffSet->second.ProjectionX("h", is, is, "");
-                double pMean  = projh2X->GetMean();
-                double pRMS  = projh2X->GetRMS();
-                TF1* g1 = new TF1("g", "gaus",  pMean - 6*pRMS, pMean + 6*pRMS);
-                projh2X->Fit("g", "QS");
-                //offSet = offSet - projh2X->GetMean();
-                offSet = offSet + g1->GetParameter(1);
-                delete projh2X;
-                delete g1;
-                }
-              }
-              else
-                break;
-            }
-            if(name == "HR")
-              offsetsHR.insert(std::make_pair(s+chamber, offSet));
-            if(name == "LR")
-              offsetsLR.insert(std::make_pair(s+chamber, offSet));
-            if(name == "AND")
-              offsets.insert(std::make_pair(s+chamber, offSet));
-	    	    nameTGEs = Form("%d%s%s_%d_%soffSet", chamber, _strDelim.c_str(), mods->at(im).c_str(), (int)value, _strDelim.c_str());   
-            itTGEs = dataRoot->addDqTGE(nameTGEs, nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
-            TGEs->find(nameTGEs.c_str())->second->setting(s + chamber, 0, offSet, eOffSet);
-          }
-        }
-      }
-    }
-  }
-  event->setTimeOffSetHR(&offsetsHR); 
-  event->setTimeOffSetLR(&offsetsLR);
-  event->setTimeOffSet(&offsets);
-  return true;
-}
-
-bool LyPeti::ATime(std::string mod, std::vector<std::string> *mods, 
-                  int run, LyPetiEvent *event, std::map<int, LyPetiAnalysis> *analysis,
-                  DqRoot *dataRoot,
-                  std::map<std::string, DqTGE*> *TGEs, 
-                  std::map<std::string, DqTH1D> *TH1s, 
-                  std::map<std::string, DqTH2D> *TH2s)
-{
-  std::string nameTGEs = "";    
-  auto itTGEs = TGEs->find("");
-  std::string nameTH1s = "";
-  auto itTH1s = TH1s->find("");
-  std::string nameTH2s = "";
-  auto itTH2s = TH2s->find("");
-  std::string sR = this->findParam("ATime_R", &_params);
-  std::vector<std::string> vsR = _parser.parsArray(sR);
-  std::vector<double> R = _parser.strToDoubleArray(vsR);
-  	
-  std::string sC = this->findParam("ATime_C", &_params);
-  std::vector<std::string> vsC = _parser.parsArray(sC);
-  std::vector<double> C = _parser.strToDoubleArray(vsC);
-
-	std::string sT = this->findParam("ATime_T", &_params);
-  std::vector<std::string> vsT = _parser.parsArray(sT);
-  std::vector<double> T = _parser.strToDoubleArray(vsT);
-
-  if(mod == "CONFIG") {
-
-    std::map<int, lyCB::data> RETURN = analysis->find(1000)->second.data();
-    std::map<int, lyCB::data> COAX = analysis->find(0)->second.data();
-    
-    std::vector<std::pair<int,int>> coupes;
-    for(auto& itR: RETURN) {
-      for(auto& itC: COAX) {
-        if(itR.second.HR.size() == itC.second.HR.size() && (itR.first == itC.first || RETURN.size() == COAX.size())) // не совсем правильный выбоp
-          coupes.push_back(std::make_pair(itR.first, itC.first));
-      }
-    }
-    for(unsigned int i = 0; i < coupes.size(); i++) {
-      double timeC_HR = analysis->find(0)->second.centralTimeCB(&COAX.find(coupes.at(i).first)->second.HR);
-      double timeC_LR = analysis->find(0)->second.centralTimeCB(&COAX.find(coupes.at(i).first)->second.LR);
-      double timeR_HR = analysis->find(1000)->second.centralTimeCB(&RETURN.find(coupes.at(i).first)->second.HR);
-      double timeR_LR = analysis->find(1000)->second.centralTimeCB(&RETURN.find(coupes.at(i).first)->second.LR);
-      //double timeC_HR = analysis->find(0)->second.middleTimeCB(&COAX.find(coupes.at(i).first)->second.HR);
-      //double timeC_LR = analysis->find(0)->second.middleTimeCB(&COAX.find(coupes.at(i).first)->second.LR);
-      //double timeR_HR = analysis->find(1000)->second.middleTimeCB(&RETURN.find(coupes.at(i).first)->second.HR);
-      //double timeR_LR = analysis->find(1000)->second.middleTimeCB(&RETURN.find(coupes.at(i).first)->second.LR);
-      nameTH2s = Form("500_CorrelationHRLR"); 
-	    itTH2s = dataRoot->addDqTH2D(nameTH2s, nameTH2s, TH2s); itTH2s->second.config(nameTH2s, &_params);
-      itTH2s->second.setting(timeR_HR-timeC_HR, timeR_LR - timeC_LR);
-      
-			if(COAX.find(coupes.at(i).first)->second.HR.size() == 1 || COAX.find(coupes.at(i).first)->second.HR.size() == 3) {
-			//if(true) {
-				bool isRC = false; int J = 0;
-        double stripR_HR = analysis->find(1000)->second.centralStripCB(&RETURN.find(coupes.at(i).first)->second.HR);
-        double stripR_LR = analysis->find(1000)->second.centralStripCB(&RETURN.find(coupes.at(i).first)->second.LR);
-        double stripC_HR = analysis->find(0)->second.centralStripCB(&COAX.find(coupes.at(i).first)->second.HR);
-        double stripC_LR = analysis->find(0)->second.centralStripCB(&COAX.find(coupes.at(i).first)->second.LR);
-				for(unsigned int jj = 0; jj < R.size(); jj++) {
-					if(R.at(jj) == stripR_HR && C.at(jj) == stripC_HR) {
-						isRC = true;
-						J=jj;
-						break;
-					}
-				}
-        if(isRC) { 
-	    		nameTH1s =  Form("500_TimeResolutionHR"); 
-      		itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-					itTH1s->second.setting(timeR_HR - timeC_HR);
-	    		nameTH1s =  Form("500_%1.f_%1.f_TimeResolutionHR", stripR_HR,  stripC_HR);  
-      		itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-					itTH1s->second.setting(timeR_HR - timeC_HR);
-	    		
-					nameTH1s =  Form("500_TimeResolutionLR"); 
-      		itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-					itTH1s->second.setting(timeR_LR - timeC_LR);
-	    		nameTH1s =  Form("500_%1.f_%1.f_TimeResolutionLR", stripR_LR,  stripC_LR);  
-      		itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-					itTH1s->second.setting(timeR_LR - timeC_LR);
-					
-          nameTH1s =  Form("500_TimeResolutionHRLR"); 
-      		itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-					itTH1s->second.setting(((timeR_LR - timeC_LR) + (timeR_HR-timeC_HR))/2);
-	    		nameTH1s =  Form("500_%1.f_%1.f_TimeResolutionHRLR", stripR_LR,  stripC_LR);  
-      		itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-					itTH1s->second.setting(((timeR_LR - timeC_LR) + (timeR_HR-timeC_HR))/2);
-				}
-      }
-      for(unsigned int j = 0; j < RETURN.find(coupes.at(i).first)->second.HR.size(); j++) {
-        nameTH2s = Form("500_CorrelationHR"); 
-	      itTH2s = dataRoot->addDqTH2D(nameTH2s, nameTH2s, TH2s); itTH2s->second.config(nameTH2s, &_params);
-        itTH2s->second.setting(RETURN.find(coupes.at(i).first)->second.HR.at(j).first, COAX.find(coupes.at(i).second)->second.HR.at(j).first);
-        
-				nameTH2s = Form("500_CorrelationLR"); 
-	      itTH2s = dataRoot->addDqTH2D(nameTH2s, nameTH2s, TH2s); itTH2s->second.config(nameTH2s, &_params);
-        itTH2s->second.setting(RETURN.find(coupes.at(i).first)->second.LR.at(j).first, COAX.find(coupes.at(i).second)->second.LR.at(j).first);
-        
-				nameTH2s = Form("500_CorrelationCBhr"); 
-	      itTH2s = dataRoot->addDqTH2D(nameTH2s, nameTH2s, TH2s); itTH2s->second.config(nameTH2s, &_params);
-        double stripR = analysis->find(1000)->second.centralStripCB(&RETURN.find(coupes.at(i).first)->second.HR);
-        double stripC = analysis->find(0)->second.centralStripCB(&COAX.find(coupes.at(i).first)->second.HR);
-        itTH2s->second.setting(stripR, stripC);
-				
-				nameTH2s = Form("500_CorrelationCBlr"); 
-	      itTH2s = dataRoot->addDqTH2D(nameTH2s, nameTH2s, TH2s); itTH2s->second.config(nameTH2s, &_params);
-       	stripR = analysis->find(1000)->second.centralStripCB(&RETURN.find(coupes.at(i).first)->second.LR);
-        stripC = analysis->find(0)->second.centralStripCB(&COAX.find(coupes.at(i).first)->second.LR);
-        itTH2s->second.setting(stripR, stripC);
-      }
-    }
-  }
-  if(mod == "CONFIG END") {
-    for(auto& it: *TH1s) it.second.setting();
-    for(auto& it: *TH2s) it.second.setting();
-  }
-  if(mod == "ANALYSIS") {
-
-    std::map<int, lyCB::data> RETURN = analysis->find(1000)->second.data();
-    std::map<int, lyCB::data> COAX = analysis->find(0)->second.data();
-    std::vector<std::pair<int,int>> coupes;
-    for(auto& itR: RETURN) {
-      for(auto& itC: COAX) {
-        if(itR.second.HR.size() == itC.second.HR.size() && (itR.first == itC.first || RETURN.size() == COAX.size())) // не совсем правильный выбоp
-          coupes.push_back(std::make_pair(itR.first, itC.first));
-      }
-    }
-    for(unsigned int i = 0; i < coupes.size(); i++) {
-      double timeC_HR = analysis->find(0)->second.centralTimeCB(&COAX.find(coupes.at(i).first)->second.HR);
-      double timeC_LR = analysis->find(0)->second.centralTimeCB(&COAX.find(coupes.at(i).first)->second.LR);
-      double timeR_HR = analysis->find(1000)->second.centralTimeCB(&RETURN.find(coupes.at(i).first)->second.HR);
-      double timeR_LR = analysis->find(1000)->second.centralTimeCB(&RETURN.find(coupes.at(i).first)->second.LR);
-      //double timeC_HR = analysis->find(0)->second.middleTimeCB(&COAX.find(coupes.at(i).first)->second.HR);
-      //double timeC_LR = analysis->find(0)->second.middleTimeCB(&COAX.find(coupes.at(i).first)->second.LR);
-      //double timeR_HR = analysis->find(1000)->second.middleTimeCB(&RETURN.find(coupes.at(i).first)->second.HR);
-      //double timeR_LR = analysis->find(1000)->second.middleTimeCB(&RETURN.find(coupes.at(i).first)->second.LR);
-      nameTH2s = Form("500_CorrelationHRLR"); 
-  		TH2s->find(nameTH2s.c_str())->second.Fill(timeR_HR - timeC_HR, timeR_LR - timeC_LR);
-      if(COAX.find(coupes.at(i).first)->second.HR.size() == 1 || COAX.find(coupes.at(i).first)->second.HR.size() == 3) {
-			//if(true) {
-				bool isRC = false; int J = 0;
-        double stripR_HR = analysis->find(1000)->second.centralStripCB(&RETURN.find(coupes.at(i).first)->second.HR);
-        double stripR_LR = analysis->find(1000)->second.centralStripCB(&RETURN.find(coupes.at(i).first)->second.LR);
-        double stripC_HR = analysis->find(0)->second.centralStripCB(&COAX.find(coupes.at(i).first)->second.HR);
-        double stripC_LR = analysis->find(0)->second.centralStripCB(&COAX.find(coupes.at(i).first)->second.LR);
-				for(unsigned int jj = 0; jj < R.size(); jj++) {
-					if(R.at(jj) == stripR_HR  && C.at(jj) == stripC_HR) {
-						isRC = true;
-						J=jj;
-						break;
-					}
-				} if(isRC) { 
-				//	std::cout << std::setprecision(6) << stripR << " " << stripC << std::endl;
-	    		nameTH1s =  Form("500_TimeResolutionHR"); 
-					TH1s->find(nameTH1s.c_str())->second.Fill(timeR_HR - timeC_HR);
-	    		nameTH1s =  Form("500_%1.f_%1.f_TimeResolutionHR", stripR_HR, stripC_HR);
-					TH1s->find(nameTH1s.c_str())->second.Fill(timeR_HR - timeC_HR);
-	    		
-					nameTH1s =  Form("500_TimeResolutionLR"); 
-					TH1s->find(nameTH1s.c_str())->second.Fill(timeR_LR - timeC_LR);
-	    		nameTH1s =  Form("500_%1.f_%1.f_TimeResolutionLR", stripR_LR, stripC_LR);
-					TH1s->find(nameTH1s.c_str())->second.Fill(timeR_LR - timeC_LR);
-					
-          nameTH1s =  Form("500_TimeResolutionHRLR"); 
-					TH1s->find(nameTH1s.c_str())->second.Fill((((timeR_LR - timeC_LR) + (timeR_HR-timeC_HR))/2));
-	    		nameTH1s =  Form("500_%1.f_%1.f_TimeResolutionHRLR", stripR_LR, stripC_LR);
-					TH1s->find(nameTH1s.c_str())->second.Fill((((timeR_LR - timeC_LR) + (timeR_HR-timeC_HR))/2));
-					}
-			}
-      for(unsigned int j = 0; j < RETURN.find(coupes.at(i).first)->second.HR.size(); j++) {
-        nameTH2s = Form("500_CorrelationHR"); 
-  		  TH2s->find(nameTH2s.c_str())->second.Fill(RETURN.find(coupes.at(i).first)->second.HR.at(j).first, COAX.find(coupes.at(i).second)->second.HR.at(j).first);
-        nameTH2s = Form("500_CorrelationLR"); 
-  		  TH2s->find(nameTH2s.c_str())->second.Fill(RETURN.find(coupes.at(i).first)->second.LR.at(j).first, COAX.find(coupes.at(i).second)->second.LR.at(j).first);
-
-        nameTH2s = Form("500_CorrelationCBhr"); 
-        double stripR = analysis->find(1000)->second.centralStripCB(&RETURN.find(coupes.at(i).first)->second.HR);
-        double stripC = analysis->find(0)->second.centralStripCB(&COAX.find(coupes.at(i).first)->second.HR);
-  		  TH2s->find(nameTH2s.c_str())->second.Fill(stripR, stripC);
-        nameTH2s = Form("500_CorrelationCBlr"); 
-        stripR = analysis->find(1000)->second.centralStripCB(&RETURN.find(coupes.at(i).first)->second.LR);
-        stripC = analysis->find(0)->second.centralStripCB(&COAX.find(coupes.at(i).first)->second.LR);
-  		  TH2s->find(nameTH2s.c_str())->second.Fill(stripR, stripC);
-      }
-    }
-    
-    
-  //nameTH1s =  Form("500&%d_%d&TimeResolution", (int)data1.at(jd1).first,  (int)data2.at(jd2).first); 
-  //TH1s->find(nameTH1s.c_str())->second.Fill(data1.at(jd1).second - data2.at(jd2).second);
-	//
-	//nameTH1s =  Form("500&TimeResolution"); 
-  //TH1s->find(nameTH1s.c_str())->second.Fill(data1.at(jd1).second - data2.at(jd2).second - T.at(J));
-  }
-  if(mod == "ANALYSIS END") {
-		//nameTGEs = Form("500&Correlation");   
-  	//itTGEs = dataRoot->addDqTGE(nameTGEs, nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
-  	//std::cout << TH2s->find(nameTH2s.c_str())->second.GetNbinsX() << std::endl;
-  	//for(unsigned int c = 1014; c < 1034; c++) {
-  	//	TH1D *h = TH2s->find(nameTH2s.c_str())->second.ProjectionY("h", c, c);
-  	//	int binmax = h->GetMaximumBin(); double x = h->GetXaxis()->GetBinCenter(binmax);
-  	//	TF1 *f1 = new TF1("f1", "gaus", x-2, x+2);
-  	//	h->Fit("f1", "R");
-  	//	TGEs->find(nameTGEs.c_str())->second->setting(c, 0, f1->GetParameter(1),  f1->GetParameter(2));
-		//
-		//	nameTH1s =  Form("500&%d_%d&TimeResolution", c,  c+1-1000); 
-  	//	int binmax1 = TH1s->find(nameTH1s.c_str())->second.GetMaximumBin(); 
-  	//	double x1 = TH1s->find(nameTH1s.c_str())->second.GetXaxis()->GetBinCenter(binmax1);
-  	//	TF1 *f2 = new TF1("f2", "gaus", x1-2, x1+2);
-  	//	TH1s->find(nameTH1s.c_str())->second.Fit("f2", "R");
-  	//}
-	}
-  else
-    return false;
-  return true;
-}
-
-bool LyPeti::ATimeSingleChamber(std::string mod, std::vector<std::string> *mods, 
-                  int run, LyPetiEvent *event, std::map<int, LyPetiAnalysis> *analysis,
-                  DqRoot *dataRoot,
-                  std::map<std::string, DqTGE*> *TGEs, 
-                  std::map<std::string, DqTH1D> *TH1s, 
-                  std::map<std::string, DqTH2D> *TH2s)
-{
-  std::string nameTGEs = "";    
-  auto itTGEs = TGEs->find("");
-  std::string nameTH1s = "";
-  auto itTH1s = TH1s->find("");
-  std::string nameTH2s = "";
-  auto itTH2s = TH2s->find("");
-  if(mod == "CONFIG") {
-    std::map<int, lyCB::data> chamber = analysis->find(1000)->second.data();
-    for(auto& it: chamber) {
-      for(unsigned int j = 0; j < chamber.find(it.first)->second.HR.size(); j++) {
-	      //if(chamber.find(it.first)->second.HR.size() == 1 || chamber.find(it.first)->second.HR.size() == 3) {
-          double strip_HR = analysis->find(1000)->second.centralStripCB(&chamber.find(it.first)->second.HR);
-          double time_HR = analysis->find(1000)->second.middleTimeCB(&chamber.find(it.first)->second.HR);
-
-          nameTH1s =  Form("1010&TimeResolutionHR"); 
-          itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-			    itTH1s->second.setting(time_HR);
-	        nameTH1s =  Form("1010&%1.f&TimeResolutionHR", strip_HR);  
-          itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-			    itTH1s->second.setting(time_HR);
-        //}
-      }
-      for(unsigned int j = 0; j < chamber.find(it.first)->second.LR.size(); j++) {
-	      //if(chamber.find(it.first)->second.LR.size() == 1 || chamber.find(it.first)->second.LR.size() == 3) {
-          double strip_LR = analysis->find(1000)->second.centralStripCB(&chamber.find(it.first)->second.LR);
-          double time_LR = analysis->find(1000)->second.middleTimeCB(&chamber.find(it.first)->second.LR);
-          
-          nameTH1s =  Form("1010&TimeResolutionLR"); 
-          itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-			    itTH1s->second.setting(time_LR);
-	        nameTH1s =  Form("1010&%1.f&TimeResolutionLR", strip_LR);  
-          itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-			    itTH1s->second.setting(time_LR);
-        //}
-      }
-    }
-  }
-  if(mod == "CONFIG END") {
-    // проверка
-    for(auto& it: *TH1s) it.second.setting();
-    for(auto& it: *TH2s) it.second.setting();
-  }
-  if(mod == "ANALYSIS") {
-    std::map<int, lyCB::data> chamber = analysis->find(1000)->second.data();
-    for(auto& it: chamber) {
-      for(unsigned int j = 0; j < chamber.find(it.first)->second.HR.size(); j++) {
-	      //if(chamber.find(it.first)->second.HR.size() == 1 || chamber.find(it.first)->second.HR.size() == 3) {
-          double strip_HR = analysis->find(1000)->second.centralStripCB(&chamber.find(it.first)->second.HR);
-          double time_HR = analysis->find(1000)->second.middleTimeCB(&chamber.find(it.first)->second.HR);
-          nameTH1s =  Form("1010&TimeResolutionHR"); 
-          auto it =  TH1s->find(nameTH1s.c_str());
-          if(it != TH1s->end()) TH1s->find(nameTH1s.c_str())->second.Fill(time_HR);
-	    		nameTH1s =  Form("1010&%1.f&TimeResolutionHR", strip_HR);
-          it =  TH1s->find(nameTH1s.c_str());
-          if(it != TH1s->end()) TH1s->find(nameTH1s.c_str())->second.Fill(time_HR);
-        //}
-      }
-      for(unsigned int j = 0; j < chamber.find(it.first)->second.LR.size(); j++) {
-	      //if(chamber.find(it.first)->second.LR.size() == 1 || chamber.find(it.first)->second.LR.size() == 3) {
-          double strip_LR = analysis->find(1000)->second.centralStripCB(&chamber.find(it.first)->second.LR);
-          double time_LR = analysis->find(1000)->second.middleTimeCB(&chamber.find(it.first)->second.LR);
-	    		nameTH1s =  Form("1010&TimeResolutionLR"); 
-           auto it = TH1s->find(nameTH1s.c_str());
-          if(it != TH1s->end()) TH1s->find(nameTH1s.c_str())->second.Fill(time_LR);
-	    		nameTH1s =  Form("1010&%1.f&TimeResolutionLR", strip_LR);
-          it =  TH1s->find(nameTH1s.c_str());
-          if(it != TH1s->end()) TH1s->find(nameTH1s.c_str())->second.Fill(time_LR);
-        //}
-      }
-    }
-  }
-  if(mod == "ANALYSIS END") {
-	  std::cout << "HI " << std::endl;
-  }
-  else
-    return false;
-  return true;
-}
-bool LyPeti::ClusterAlgoTest(std::string mod, std::vector<std::string> *mods, 
-                  int run, LyPetiEvent *event, std::map<int, LyPetiAnalysis> *analysis,
-                  DqRoot *dataRoot,
-                  std::map<std::string, DqTGE*> *TGEs, 
-                  std::map<std::string, DqMTGE*> *MTGEs, 
-                  std::map<std::string, DqTH1D> *TH1s, 
-                  std::map<std::string, DqTH2D> *TH2s)
-{
-  std::string nameMTGEs = "";    
-  auto itMTGEs = MTGEs->find("");
-  std::string nameTGEs = "";    
-  auto itTGEs = TGEs->find("");
-  std::string nameTH1s = "";
-  auto itTH1s = TH1s->find("");
-  std::string nameTH2s = "";
-  auto itTH2s = TH2s->find("");
-  if(mod == "CONFIG") {
-    std::map<int, lyCB::data> chamber = analysis->find(1000)->second.data();
-    std::vector<std::pair<int, double>> sortTime;
-    for(auto& it: chamber) {
-      double time = analysis->find(1000)->second.firstTimeCB(&chamber.find(it.first)->second.HR);
-      double index = it.first;
-      sortTime.push_back(std::pair<int, double>((double)index, time));
-    }
-	  std::sort(sortTime.begin(), sortTime.end(), [](auto &left, auto &right) {
-      return std::abs(left.second) < std::abs(right.second);
-	  });
-    for(int i = 0; i < sortTime.size(); i++) {
-      for(int s = 2; s < 20; s++) {
-        if(chamber.size() == s) {
-          int nEvent = event->trigs(1000)->at(0)->head->number;
-          for(unsigned int j = 0; j < chamber.find(sortTime.at(i).first)->second.HR.size(); j++) {
-            double strip_HR = chamber.find(sortTime.at(i).first)->second.HR.at(j).first;
-            double time_HR  = chamber.find(sortTime.at(i).first)->second.HR.at(j).second;
-            nameTH2s = Form("1000_CTstripTimeHR%ssize%d%s%d", _strDelim.c_str(), s, _strDelim.c_str(), i); 
-	          itTH2s = dataRoot->addDqTH2D(nameTH2s, nameTH2s, TH2s); itTH2s->second.config(nameTH2s, &_params);
-            itTH2s->second.setting(time_HR, strip_HR);
-          }
-          for(unsigned int j = 0; j < chamber.find(sortTime.at(i).first)->second.LR.size(); j++) {
-            double strip_LR = chamber.find(sortTime.at(i).first)->second.LR.at(j).first;
-            double time_LR  = chamber.find(sortTime.at(i).first)->second.LR.at(j).second;
-            nameTH2s = Form("1000_CTstripTimeLR%ssize%d%s%d", _strDelim.c_str(), s, _strDelim.c_str(), i); 
-	          itTH2s = dataRoot->addDqTH2D(nameTH2s, nameTH2s, TH2s); itTH2s->second.config(nameTH2s, &_params);
-            itTH2s->second.setting(time_LR, strip_LR);
-          }
-          double strip = chamber.find(sortTime.at(i).first)->second.firstStrip;
-          double time = chamber.find(sortTime.at(i).first)->second.firstTime;
-          nameTH2s = Form("1000_CTstripTimeCB%ssize%d%s%d", _strDelim.c_str(), s, _strDelim.c_str(), i); 
-	        itTH2s = dataRoot->addDqTH2D(nameTH2s, nameTH2s, TH2s); itTH2s->second.config(nameTH2s, &_params);
-          itTH2s->second.setting(time, strip);
-        }
-      }
-    }
-  }
-  if(mod == "CONFIG END") {
-    // проверка
-    for(auto& it: *TH1s) it.second.setting();
-    for(auto& it: *TH2s) it.second.setting();
-  }
-  if(mod == "ANALYSIS") {
-    std::map<int, lyCB::data> chamber = analysis->find(1000)->second.data();
-    std::vector<std::pair<int, double>> sortTime;
-    for(auto& it: chamber) {
-      double time = analysis->find(1000)->second.firstTimeCB(&chamber.find(it.first)->second.HR);
-      double index = it.first;
-      sortTime.push_back(std::pair<int, double>((double)index, time));
-    }
-	  std::sort(sortTime.begin(), sortTime.end(), [](auto &left, auto &right) {
-      return std::abs(left.second) < std::abs(right.second);
-	  });
-    for(int i = 0; i < sortTime.size(); i++) {
-      for(int s = 2; s < 20; s++) {
-        if(chamber.size() == s) {
-          int nEvent = event->trigs(1000)->at(0)->head->number;
-          nameMTGEs = Form("1000_mgrCTstripTimeHR%ssize%d%s%d", _strDelim.c_str(), s, _strDelim.c_str(), nEvent);   
-          itMTGEs = dataRoot->addDqMTGE(nameMTGEs, nameMTGEs, MTGEs); itMTGEs->second->config(nameMTGEs, &_params);
-          for(unsigned int j = 0; j < chamber.find(sortTime.at(i).first)->second.HR.size(); j++) {
-            double strip_HR = chamber.find(sortTime.at(i).first)->second.HR.at(j).first;
-            double time_HR  = chamber.find(sortTime.at(i).first)->second.HR.at(j).second;
-            nameTH2s = Form("1000_CTstripTimeHR%ssize%d%s%d", _strDelim.c_str(), s, _strDelim.c_str(), i); 
-            auto it = TH2s->find(nameTH2s.c_str());
-  		      if(it != TH2s->end()) TH2s->find(nameTH2s.c_str())->second.Fill(time_HR, strip_HR);
-    		    
-            nameTGEs = Form("1000_grCTstripTimeHR%ssize%d%s%d%s%d", _strDelim.c_str(), s, _strDelim.c_str(), i, _strDelim.c_str(), nEvent);   
-            itTGEs = dataRoot->addDqTGE(nameTGEs, nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
-            TGEs->find(nameTGEs.c_str())->second->setting(time_HR, 0, strip_HR, 0);
-          }
-          TGEs->find(nameTGEs.c_str())->second->plot();
-          MTGEs->find(nameMTGEs.c_str())->second->addDqTGE(TGEs->find(nameTGEs.c_str())->second);
-          
-          nameMTGEs = Form("1000_mgrCTstripTimeLR%ssize%d%s%d", _strDelim.c_str(), s, _strDelim.c_str(), nEvent);   
-          itMTGEs = dataRoot->addDqMTGE(nameMTGEs, nameMTGEs, MTGEs); itMTGEs->second->config(nameMTGEs, &_params);
-          for(unsigned int j = 0; j < chamber.find(sortTime.at(i).first)->second.LR.size(); j++) {
-            double strip_LR = chamber.find(sortTime.at(i).first)->second.LR.at(j).first;
-            double time_LR  = chamber.find(sortTime.at(i).first)->second.LR.at(j).second;
-            nameTH2s = Form("1000_CTstripTimeLR%ssize%d%s%d", _strDelim.c_str(), s, _strDelim.c_str(), i); 
-            auto it = TH2s->find(nameTH2s.c_str());
-  		      if(it != TH2s->end()) TH2s->find(nameTH2s.c_str())->second.Fill(time_LR, strip_LR);
-    		    
-            nameTGEs = Form("1000_grCTstripTimeLR%ssize%d%s%d%s%d", _strDelim.c_str(), s, _strDelim.c_str(), i, _strDelim.c_str(), nEvent);   
-            itTGEs = dataRoot->addDqTGE(nameTGEs, nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
-            TGEs->find(nameTGEs.c_str())->second->setting(time_LR, 0, strip_LR, 0);
-
-          }
-          TGEs->find(nameTGEs.c_str())->second->plot();
-          MTGEs->find(nameMTGEs.c_str())->second->addDqTGE(TGEs->find(nameTGEs.c_str())->second);
-
-          double strip = chamber.find(sortTime.at(i).first)->second.firstStrip;
-          double time = chamber.find(sortTime.at(i).first)->second.firstTime;
-          nameTH2s = Form("1000_CTstripTimeCB%ssize%d%s%d", _strDelim.c_str(), s, _strDelim.c_str(), i); 
-          auto it = TH2s->find(nameTH2s.c_str());
-  		    if(it != TH2s->end()) TH2s->find(nameTH2s.c_str())->second.Fill(time, strip);
-        }
-      }
-    }
-  }
-  if(mod == "ANALYSIS END") {
-  }
-  else
-    return false;
-  return true;
-}
-
 
 bool LyPeti::offset(std::string mod, std::vector<std::string> *mods, 
                   int run, LyPetiEvent *event, std::map<int, LyPetiAnalysis> *analysis,
                   DqRoot *dataRoot,
                   std::map<std::string, DqTGE*> *TGEs, 
-                  std::map<std::string, DqTH1D> *TH1s, 
-                  std::map<std::string, DqTH2D> *TH2s)
+                  std::map<std::string, DqTH1D> *TH1s)
 {
-  std::string nameTGEs = "";    
-  std::string titleTGEs = "";    
-  auto itTGEs = TGEs->find("");
-  std::string nameTH1s = "";
-  std::string titleTH1s = "";
-  auto itTH1s = TH1s->find("");
-  std::string nameTH2s = "";
-  std::string titleTH2s = "";
-  auto itTH2s = TH2s->find("");
+  std::string nameTGEs = ""; std::string titleTGEs = ""; auto itTGEs = TGEs->find("");
+  std::string nameTH1s = ""; std::string titleTH1s = ""; auto itTH1s = TH1s->find("");
   std::map<int, double> offsetsHR; std::map<int, double> offsetsLR;
-  if(mod ==  "OFFSET" + _strDelim + "CONFIG") {
+  if(mod ==  "OFFSET" + _strDelim + "CONFIG" || mod ==  "OFFSET" + _strDelim + "ANALYSIS") {
+    bool isA = true; if(mod ==  "OFFSET" + _strDelim + "CONFIG") isA = false; 
     // FIRST ANALYSIS BEGIN ------------------------------------------------
+    std::string strValue; double buffer = 6; 
+    bool isBuffer = this->findParam("offsetFit&buffer", &strValue, &_params);
+		if(isBuffer) _parser.strToDouble(&buffer, strValue);
     for(unsigned int ic = 0; ic < event->chambers()->size(); ic++) {
       int chamber = event->chambers()->at(ic);
       analysis->find(chamber)->second.setStrips(event->strips(chamber));
-      
-      // TRIGS
-      for(unsigned int jt = 0; jt < event->trigs(chamber)->size(); jt++) {
-        if(event->trigs(chamber)->at(jt)->head->numOfCh > 16) analysis->find(chamber)->second.skipEvent(true); 
-      }
       //--- 
-      unsigned int numberOfTrigers = event->trigs(chamber)->size();
+      for(unsigned int jt = 0; jt < event->trigs(chamber)->size(); jt++)
+        if(event->trigs(chamber)->at(jt)->head->numOfCh > buffer) analysis->find(chamber)->second.skipEvent(true);
+      //--- 
+      unsigned int numberOfTrigers = event->trigs(chamber)->size(); // #
       bool isTrigers = analysis->find(chamber)->second.fillTrigers(numberOfTrigers);
     	if(isTrigers) {
-        for(unsigned int js = 0; js < event->strips(chamber)->size(); js++) {
-          // Fill raw data with maping. 
+        for(unsigned int js = 0; js < event->strips(chamber)->size(); js++) { // Fill raw data with maping. 
           for(unsigned int jh = 0; jh < event->strips(chamber)->at(js).HR.size(); jh++) {
             bool isFilterHR = analysis->find(chamber)->second.filters("data_HR", js, jh); 
-            if(isFilterHR) 
-              analysis->find(chamber)->second.fillEvents("data_HR", js, jh); 
-          bool isFilterNoiseHR = analysis->find(chamber)->second.filters("noise_HR", js, jh); 
-          if(isFilterNoiseHR) 
-            analysis->find(chamber)->second.fillEvents("noise_HR", js, jh); 
-          analysis->find(chamber)->second.filters("deadTime_HR", js, jh); // skip if deadTime 
+            if(isFilterHR)  analysis->find(chamber)->second.fillEvents("data_HR", js, jh); 
           }
           
           for(unsigned int jl = 0; jl < event->strips(chamber)->at(js).LR.size(); jl++) {
             bool isFilterLR = analysis->find(chamber)->second.filters("data_LR", js, jl); 
-            if(isFilterLR)
-              analysis->find(chamber)->second.fillEvents("data_LR", js, jl); 
-            bool isFilterNoiseLR = analysis->find(chamber)->second.filters("noise_LR", js, jl); 
-            if(isFilterNoiseLR) 
-              analysis->find(chamber)->second.fillEvents("noise_LR", js, jl); 
-          analysis->find(chamber)->second.filters("deadTime_LR", js, jl); // skip if deadTime 
+            if(isFilterLR) analysis->find(chamber)->second.fillEvents("data_LR", js, jl); 
      	  	}
     	  }
       }
-      if(!analysis->find(chamber)->second.skipEvent()) {  
-        // ANALYSIS PART
-        std::string filters = analysis->find(chamber)->second.filtersStr(); 
-        for(unsigned int im = 0; im < mods->size(); im++) {
+      // ANALYSIS PART
+      std::string filters = analysis->find(chamber)->second.filtersStr(); 
+      for(unsigned int im = 0; im < mods->size(); im++) {
+        if(!analysis->find(chamber)->second.skipEvent()) {  
           analysis->find(chamber)->second.algos(mods->at(im));
           std::string modParams = analysis->find(chamber)->second.modParamsStr(mods->at(im)); 
           std::vector<std::pair<double, double>> data = analysis->find(chamber)->second.data(mods->at(im).c_str());
-          int mult = 0; bool isMult = analysis->find(chamber)->second.multiplicity(&mult, mods->at(im).c_str());
           for(unsigned int jd = 0; jd < data.size(); jd++) { 
             nameTH1s = Form("%d%s%d%s%sTimeProfileOffset", chamber, _strDelim.c_str(), (int)data.at(jd).first, _strDelim.c_str(), mods->at(im).c_str()); 
-            titleTH1s = Form("%d%s%s", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
-            itTH1s = dataRoot->addDqTH1D(nameTH1s, titleTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-            itTH1s->second.setting(data.at(jd).second);
+            itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params); 
+            if(!isA) itTH1s->second.setting(data.at(jd).second); 
+            if(isA) { itTH1s = TH1s->find(nameTH1s); if(!(itTH1s == TH1s->end())) 
+              TH1s->find(nameTH1s.c_str())->second.Fill(data.at(jd).second); }
           }
         }
       }
@@ -1350,86 +604,21 @@ bool LyPeti::offset(std::string mod, std::vector<std::string> *mods,
         }
         it.second.setting();
       }
-      for(auto& it: *TH2s) {
-        for(unsigned int im = 0; im < mods->size(); im++) {
-          std::string modParams = analysis->find(chamber)->second.modParamsStr(mods->at(im)); 
-          if(_parser.last(it.second.GetTitle()) == _parser.last((mods->at(im).c_str()))) {
-            name = Form("%s%s%s%s%s", it.second.GetName(), _strDelim.c_str(), modParams.c_str(), _strDelim.c_str(), filters.c_str()); 
-            it.second.SetTitle(name.c_str()); 
-          }
-        }
-        it.second.setting();
-      }
-    }
-  }
-  if(mod ==  "OFFSET" + _strDelim + "ANALYSIS") {
-
-    for(unsigned int ic = 0; ic < event->chambers()->size(); ic++) {
-      int chamber = event->chambers()->at(ic); 
-      analysis->find(chamber)->second.setStrips(event->strips(chamber));
-    
-      // TRIGS
-      for(unsigned int jt = 0; jt < event->trigs(chamber)->size(); jt++) {
-        if(event->trigs(chamber)->at(jt)->head->numOfCh > 16) analysis->find(chamber)->second.skipEvent(true); 
-      }
-     
-      unsigned int numberOfTrigers = event->trigs(chamber)->size();
-      bool isTrigers = analysis->find(chamber)->second.fillTrigers(numberOfTrigers);
-    	if(isTrigers) {
-        for(unsigned int js = 0; js < event->strips(chamber)->size(); js++) {
-          // HR
-          for(unsigned int jh = 0; jh < event->strips(chamber)->at(js).HR.size(); jh++) {
-            bool isFilterHR = analysis->find(chamber)->second.filters("data_HR", js, jh); 
-            if(isFilterHR)
-              analysis->find(chamber)->second.fillEvents("data_HR", js, jh); 
-            bool isFilterNoiseHR = analysis->find(chamber)->second.filters("noise_HR", js, jh); 
-            if(isFilterNoiseHR) 
-              analysis->find(chamber)->second.fillEvents("noise_HR", js, jh); 
-            
-            analysis->find(chamber)->second.filters("deadTime_HR", js, jh); // skip if deadTime 
-          }
-          // LR
-     		  for(unsigned int jl = 0; jl < event->strips(chamber)->at(js).LR.size(); jl++) {
-            bool isFilterLR = analysis->find(chamber)->second.filters("data_LR", js, jl); 
-            if(isFilterLR)
-              analysis->find(chamber)->second.fillEvents("data_LR", js, jl); 
-            bool isFilterNoiseLR = analysis->find(chamber)->second.filters("noise_LR", js, jl); 
-            if(isFilterNoiseLR) 
-              analysis->find(chamber)->second.fillEvents("noise_LR", js, jl); 
-            
-            analysis->find(chamber)->second.filters("deadTime_LR", js, jl); // skip if deadTime 
-     		  }
-        }
-    	}
-      if(!analysis->find(chamber)->second.skipEvent()) {  
-        // ANALYSIS PART
-        std::string filters = analysis->find(chamber)->second.filtersStr(); 
-        for(unsigned int im = 0; im < mods->size(); im++) {
-          //std::cout << mods->at(im).c_str() << std::endl;
-          analysis->find(chamber)->second.algos(mods->at(im));
-          std::string modParams = analysis->find(chamber)->second.modParamsStr(mods->at(im)); 
-          int mult = 0; bool isMult = analysis->find(chamber)->second.multiplicity(&mult, mods->at(im).c_str());
-          
-          std::vector<std::pair<double, double>> data = analysis->find(chamber)->second.data(mods->at(im).c_str());
-          for(unsigned int jd = 0; jd < data.size(); jd++) { 
-            nameTH1s = Form("%d%s%d%s%sTimeProfileOffset", chamber, _strDelim.c_str(), (int)data.at(jd).first, _strDelim.c_str(), mods->at(im).c_str()); 
-            //std::cout << nameTH1s << std::endl;
-            auto itStrip = TH1s->find(nameTH1s);
-            if(!(itStrip == TH1s->end())) {
-              TH1s->find(nameTH1s.c_str())->second.Fill(data.at(jd).second);
-            }
-          }
-        }
-      }
     }
   }
   if(mod ==  "OFFSET" + _strDelim + "ANALYSIS END") {
+    
+    std::string strValue;
+    double nRMS = 3; double entries = 100;
+    bool isRMS = this->findParam("offsetFit&nRMS", &strValue, &_params);
+		if(isRMS) _parser.strToDouble(&nRMS, strValue);
+    bool isEntries = this->findParam("offsetFit&entries", &strValue, &_params);
+		if(isEntries) _parser.strToDouble(&entries, strValue);
+    
     for(unsigned int ic = 0; ic < event->chambers()->size(); ic++) {
       int chamber = event->chambers()->at(ic); 
       std::string filters = analysis->find(chamber)->second.filtersStr(); 
       for(unsigned int im = 0; im < mods->size(); im++) {
-        if(!(mods->at(im).c_str() == "LR" || mods->at(im).c_str() == "HR"))
-          break;
         analysis->find(chamber)->second.algos(mods->at(im));
         std::string modParams = analysis->find(chamber)->second.modParamsStr(mods->at(im)); 
         double offSet = 0; double errOffSet = 0;
@@ -1437,119 +626,156 @@ bool LyPeti::offset(std::string mod, std::vector<std::string> *mods,
         int strips = event->numberOfStrips(chamber);
 	    	nameTGEs = Form("%d%s%s_%d_%soffSet", chamber, _strDelim.c_str(), mods->at(im).c_str(), (int)value, _strDelim.c_str());   
         itTGEs = dataRoot->addDqTGE(nameTGEs, nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
-        double refTime = 0; double errRefTime = 0; int prevEntries = 0; int refStrip = 0;
-        for(unsigned int c = 0; c < strips; c++) {
+        double refTime = 0; double errRefTime = 0; int prevEntries = 0; int refStrip = -1;
+        for(int c = 0; c < strips; c++) {
           nameTH1s = Form("%d%s%d%s%sTimeProfileOffset", chamber, _strDelim.c_str(), c, _strDelim.c_str(), mods->at(im).c_str()); 
-          //std::cout << nameTH1s << std::endl;
-          auto itStrip = TH1s->find(nameTH1s.c_str());
-          if(!(itStrip == TH1s->end())) {
-            std::cout << TH1s->find(nameTH1s.c_str())->second.GetEntries() << std::endl;
-            //std::cout << c << std::endl;
+          itTH1s = TH1s->find(nameTH1s.c_str()); if(!(itTH1s == TH1s->end())) {
             if(TH1s->find(nameTH1s.c_str())->second.GetEntries() > prevEntries) {
               prevEntries = TH1s->find(nameTH1s.c_str())->second.GetEntries();
               refStrip = c;
             }
           }
         }
-        nameTH1s = Form("%d%s%d%s%sTimeProfileOffset", chamber, _strDelim.c_str(), refStrip, _strDelim.c_str(), mods->at(im).c_str()); 
-        double mean = TH1s->find(nameTH1s.c_str())->second.GetMean(); double rms = TH1s->find(nameTH1s.c_str())->second.GetRMS();
-        TF1 *f1 = new TF1("f1", "gaus", mean-5*rms, mean+5*rms);
-        TH1s->find(nameTH1s.c_str())->second.Fit("f1", "R");
-        refTime = f1->GetParameter(1);  errRefTime = f1->GetParError(1);
-        //delete f1;
-        for(unsigned int c = 0; c < strips; c++) {
+        if(refStrip != -1) {
+          nameTH1s = Form("%d%s%d%s%sTimeProfileOffset", chamber, _strDelim.c_str(), refStrip, _strDelim.c_str(), mods->at(im).c_str()); 
+          double mean = TH1s->find(nameTH1s.c_str())->second.GetMean(); double rms = TH1s->find(nameTH1s.c_str())->second.GetRMS();
+          TF1 *f1 = new TF1("f1", "gaus", mean-nRMS*rms, mean+nRMS*rms);
+          TH1s->find(nameTH1s.c_str())->second.Fit("f1", "R");
+          refTime = f1->GetParameter(1); errRefTime = f1->GetParError(1);
+          //delete f1;
+        }
+        for(int c = 0; c < strips; c++) {
           nameTH1s = Form("%d%s%d%s%sTimeProfileOffset", chamber, _strDelim.c_str(), c, _strDelim.c_str(), mods->at(im).c_str()); 
           auto itStrip = TH1s->find(nameTH1s.c_str());
           if(!(itStrip == TH1s->end())) {
-            if(TH1s->find(nameTH1s.c_str())->second.GetEntries() > 50) {
+            if(TH1s->find(nameTH1s.c_str())->second.GetEntries() > entries) {
               double mean = TH1s->find(nameTH1s.c_str())->second.GetMean(); double rms = TH1s->find(nameTH1s.c_str())->second.GetRMS();
-              TF1 *f1 = new TF1("f1", "gaus", mean-5*rms, mean+5*rms);
+              TF1 *f1 = new TF1("f1", "gaus", mean-nRMS*rms, mean+nRMS*rms);
               TH1s->find(nameTH1s.c_str())->second.Fit("f1", "R");
               offSet = f1->GetParameter(1)-refTime; 
               errOffSet = f1->GetParError(1)+errRefTime; 
               TGEs->find(nameTGEs.c_str())->second->setting(c + chamber, 0, offSet, errOffSet);
-              if(mods->at(im).c_str() == "HR") offsetsHR.insert(std::make_pair(c+chamber, offSet));
-              if(mods->at(im).c_str() == "LR") offsetsLR.insert(std::make_pair(c+chamber, offSet));
+              if(mods->at(im) == "HR") { 
+                offsetsHR.insert(std::make_pair(c+chamber, offSet));
+              }
+              if(mods->at(im) == "LR") 
+                offsetsLR.insert(std::make_pair(c+chamber, offSet));
               delete f1;
             }
           }
         }
       }
     }
+    event->setTimeOffSetHR(&offsetsHR); 
+    event->setTimeOffSetLR(&offsetsLR);
+
+    double print = 0;
+    bool isPrint = this->findParam("offsetFit&print", &strValue, &_params);
+		if(isPrint)  _parser.strToDouble(&print, strValue);
+    if(print == 1) { 
+      std::string delim = this->findParam("sys&DqParser&AD&1", &_params);
+      for(unsigned int ic = 0; ic < event->chambers()->size(); ic++) {
+        int chamber = event->chambers()->at(ic); 
+        int strips = event->numberOfStrips(chamber);
+        std::cout << "\n" << "chamber: " << chamber << "; HR\n";
+        for(int i = 0; i < strips; i++) {
+          auto itStrip = offsetsHR.find(i+chamber);
+            if(!(itStrip == offsetsHR.end())) {
+              std::cout << std::setprecision(5) << offsetsHR.find(i+chamber)->second << delim;
+            }
+            else
+              std::cout << 0 << delim;
+        }
+        std::cout << "\n" << "chamber: " << chamber << "; LR\n";
+        for(int i = 0; i < strips; i++) {
+          auto itStrip = offsetsLR.find(i+chamber);
+            if(!(itStrip == offsetsLR.end())) {
+              std::cout << std::setprecision(5) << offsetsLR.find(i+chamber)->second << delim;
+            }
+            else
+              std::cout << 0 << delim;
+        }
+      }
+    }
   }
   else
     return false;
-  event->setTimeOffSetHR(&offsetsHR); 
-  event->setTimeOffSetLR(&offsetsLR);
   return true;
 }
+
 bool LyPeti::core(std::string mod, std::vector<std::string> *mods, 
                   int run, LyPetiEvent *event, std::map<int, LyPetiAnalysis> *analysis,
                   DqRoot *dataRoot,
                   std::map<std::string, DqTGE*> *TGEs, 
+                  std::map<std::string, DqTG2D*> *TG2Ds, 
                   std::map<std::string, DqTH1D> *TH1s, 
                   std::map<std::string, DqTH2D> *TH2s)
 {
-  std::string nameTGEs = "";    
-  std::string titleTGEs = "";    
-  auto itTGEs = TGEs->find("");
-  std::string nameTH1s = "";
-  std::string titleTH1s = "";
-  auto itTH1s = TH1s->find("");
-  std::string nameTH2s = "";
-  std::string titleTH2s = "";
-  auto itTH2s = TH2s->find("");
-  if(mod == "CONFIG") {
-    // FIRST ANALYSIS BEGIN ------------------------------------------------
+  std::string nameTGEs = ""; std::string titleTGEs = ""; auto itTGEs = TGEs->find("");
+  std::string nameTG2Ds = ""; std::string titleTG2Ds = ""; auto itTG2Ds = TG2Ds->find("");
+  std::string nameTH1s = ""; std::string titleTH1s = ""; auto itTH1s = TH1s->find("");
+  std::string nameTH2s = ""; std::string titleTH2s = ""; auto itTH2s = TH2s->find("");
+  if(mod == "CONFIG" || mod == "ANALYSIS") {
+    bool isA = true; if(mod == "CONFIG") isA = false; 
+    //  ANALYSIS BEGIN  --------------------------------------------------------
     for(unsigned int ic = 0; ic < event->chambers()->size(); ic++) {
-      int chamber = event->chambers()->at(ic);
+      int chamber = event->chambers()->at(ic); // #
       analysis->find(chamber)->second.setStrips(event->strips(chamber));
       
       // TRIGS
       for(unsigned int jt = 0; jt < event->trigs(chamber)->size(); jt++) {
         int boardID = event->trigs(chamber)->at(jt)->head->boardID; 
+        int numOfCh = event->trigs(chamber)->at(jt)->head->numOfCh; 
         nameTH1s = Form("%d%snum%d%sbuffer", chamber, _strDelim.c_str(), boardID, _strDelim.c_str());
-        itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-        itTH1s->second.setting(event->trigs(chamber)->at(jt)->head->numOfCh);
+        itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params); 
+        if(!isA) itTH1s->second.setting(numOfCh); 
+        if(isA) { itTH1s = TH1s->find(nameTH1s); if(!(itTH1s == TH1s->end())) 
+          TH1s->find(nameTH1s.c_str())->second.Fill(numOfCh); }
         //---
+        int BCID = event->trigs(chamber)->at(jt)->BCID; 
         nameTH1s = Form("%d%snum%d%strigBCID", chamber, _strDelim.c_str(), boardID,_strDelim.c_str());
         itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-        itTH1s->second.setting(event->trigs(chamber)->at(jt)->BCID);
+        if(!isA) itTH1s->second.setting(BCID);
+        if(isA) { itTH1s = TH1s->find(nameTH1s); if(!(itTH1s == TH1s->end())) 
+          TH1s->find(nameTH1s.c_str())->second.Fill(BCID); }
+        //---
       }
-    
-      unsigned int numberOfTrigers = event->trigs(chamber)->size();
+      unsigned int numberOfTrigers = event->trigs(chamber)->size(); // #
       nameTH1s = Form("%d%sNumberOfTrigers", chamber, _strDelim.c_str()); 
       itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-      itTH1s->second.setting(numberOfTrigers);
+      if(!isA) itTH1s->second.setting(numberOfTrigers);
+      if(isA) { itTH1s = TH1s->find(nameTH1s); if(!(itTH1s == TH1s->end()))
+        TH1s->find(nameTH1s.c_str())->second.Fill(numberOfTrigers); }
       //--- 
-      
       bool isTrigers = analysis->find(chamber)->second.fillTrigers(numberOfTrigers);
     	if(isTrigers) {
         for(unsigned int js = 0; js < event->strips(chamber)->size(); js++) {
-         
           // HR
           double numberOfHitsHR = event->strips(chamber)->at(js).HR.size(); 
           nameTH1s = Form("%d%sNumberOfHitsHR", chamber, _strDelim.c_str()); 
           itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-          itTH1s->second.setting(numberOfHitsHR);
-          // LR
-        	double numberOfHitsLR = event->strips(chamber)->at(js).LR.size(); 
-          nameTH1s = Form("%d%sNumberOfHitsLR", chamber, _strDelim.c_str()); 
-          itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-          itTH1s->second.setting(numberOfHitsLR);
-         
-          // Fill raw data with maping. 
-          for(unsigned int jh = 0; jh < event->strips(chamber)->at(js).HR.size(); jh++) {
+          if(!isA) itTH1s->second.setting(numberOfHitsHR);
+          if(isA) { itTH1s = TH1s->find(nameTH1s); if(!(itTH1s == TH1s->end())) 
+            TH1s->find(nameTH1s.c_str())->second.Fill(numberOfHitsHR); }
+          //---
+          for(unsigned int jh = 0; jh < event->strips(chamber)->at(js).HR.size(); jh++) { // Filling data for HR
             bool isFilterHR = analysis->find(chamber)->second.filters("data_HR", js, jh); 
             if(isFilterHR) 
               analysis->find(chamber)->second.fillEvents("data_HR", js, jh); 
-          bool isFilterNoiseHR = analysis->find(chamber)->second.filters("noise_HR", js, jh); 
-          if(isFilterNoiseHR) 
-            analysis->find(chamber)->second.fillEvents("noise_HR", js, jh); 
-          analysis->find(chamber)->second.filters("deadTime_HR", js, jh); // skip if deadTime 
+            bool isFilterNoiseHR = analysis->find(chamber)->second.filters("noise_HR", js, jh); 
+            if(isFilterNoiseHR) 
+              analysis->find(chamber)->second.fillEvents("noise_HR", js, jh); 
+            analysis->find(chamber)->second.filters("deadTime_HR", js, jh); // skip if deadTime 
           }
-          
-          for(unsigned int jl = 0; jl < event->strips(chamber)->at(js).LR.size(); jl++) {
+        	// LR
+          double numberOfHitsLR = event->strips(chamber)->at(js).LR.size(); 
+          nameTH1s = Form("%d%sNumberOfHitsLR", chamber, _strDelim.c_str()); 
+          itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
+          if(!isA) itTH1s->second.setting(numberOfHitsLR);
+          if(isA) { itTH1s = TH1s->find(nameTH1s); if(!(itTH1s == TH1s->end())) 
+            TH1s->find(nameTH1s.c_str())->second.Fill(numberOfHitsLR); }
+          //---
+          for(unsigned int jl = 0; jl < event->strips(chamber)->at(js).LR.size(); jl++) { // Filling data for LR
             bool isFilterLR = analysis->find(chamber)->second.filters("data_LR", js, jl); 
             if(isFilterLR)
               analysis->find(chamber)->second.fillEvents("data_LR", js, jl); 
@@ -1560,67 +786,113 @@ bool LyPeti::core(std::string mod, std::vector<std::string> *mods,
      	  	}
     	  }
       }
-      if(!analysis->find(chamber)->second.skipEvent()) {  
-        // ANALYSIS PART
-        std::string filters = analysis->find(chamber)->second.filtersStr(); 
-        for(unsigned int im = 0; im < mods->size(); im++) {
-          analysis->find(chamber)->second.algos(mods->at(im));
+      std::string filters = analysis->find(chamber)->second.filtersStr(); 
+
+      for(unsigned int im = 0; im < mods->size(); im++) {
+        analysis->find(chamber)->second.algos(mods->at(im));
+        if(!analysis->find(chamber)->second.skipEvent()) {  // ANALYSIS PART
           std::string modParams = analysis->find(chamber)->second.modParamsStr(mods->at(im)); 
           std::vector<std::pair<double, double>> data = analysis->find(chamber)->second.data(mods->at(im).c_str());
           for(unsigned int jd = 0; jd < data.size(); jd++) { 
+            
             nameTH1s = Form("%d%s%sstripProfile", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
             titleTH1s = Form("%d%s%s", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
             itTH1s = dataRoot->addDqTH1D(nameTH1s, titleTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-            itTH1s->second.setting(data.at(jd).first);
+            if(!isA) itTH1s->second.setting(data.at(jd).first);
+            if(isA) { itTH1s = TH1s->find(nameTH1s); if(!(itTH1s == TH1s->end())) 
+              TH1s->find(nameTH1s.c_str())->second.Fill(data.at(jd).first); }
             //---
             nameTH1s = Form("%d%s%stimeProfile", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
             titleTH1s = Form("%d%s%s", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
             itTH1s = dataRoot->addDqTH1D(nameTH1s, titleTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-            itTH1s->second.setting(data.at(jd).second);
-          
+            if(!isA) itTH1s->second.setting(data.at(jd).second);
+            if(isA) { itTH1s = TH1s->find(nameTH1s); if(!(itTH1s == TH1s->end())) 
+              TH1s->find(nameTH1s.c_str())->second.Fill(data.at(jd).second); }
+            //--- 
             nameTH2s = Form("%d%s%sstripTimeProfile", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
             titleTH2s = Form("%d%s%s", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
             itTH2s = dataRoot->addDqTH2D(nameTH2s, titleTH2s, TH2s); itTH2s->second.config(nameTH2s, &_params);
-            itTH2s->second.setting(data.at(jd).second, data.at(jd).first);
-            
+            if(!isA) itTH2s->second.setting(data.at(jd).second, data.at(jd).first);
+            if(isA) { itTH2s = TH2s->find(nameTH2s); if(!(itTH2s == TH2s->end())) 
+              TH2s->find(nameTH2s.c_str())->second.Fill(data.at(jd).second, data.at(jd).first); }
+            //--- 
             nameTH1s = Form("%d%s%d%s%sTimeProfile", chamber, _strDelim.c_str(), (int)data.at(jd).first, _strDelim.c_str(), mods->at(im).c_str()); 
             titleTH1s = Form("%d%s%s", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
             itTH1s = dataRoot->addDqTH1D(nameTH1s, titleTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-            itTH1s->second.setting(data.at(jd).second);
+            if(!isA) itTH1s->second.setting(data.at(jd).second);
+            if(isA) { itTH1s = TH1s->find(nameTH1s); if(!(itTH1s == TH1s->end())) 
+              TH1s->find(nameTH1s.c_str())->second.Fill(data.at(jd).second); }
+            //---
           }
-          
+          std::vector<std::pair<double, std::pair<double, double>>> pairData = analysis->find(chamber)->second.pairData(mods->at(im).c_str());
+          for(unsigned int jd = 0; jd < pairData.size(); jd++) {
+            nameTH2s = Form("%d%s%d%s%sTimeProfileCouple", chamber, _strDelim.c_str(), (int)pairData.at(jd).first, _strDelim.c_str(), mods->at(im).c_str()); 
+            titleTH2s = Form("%d%s%s", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
+            itTH2s = dataRoot->addDqTH2D(nameTH2s, titleTH2s, TH2s); itTH2s->second.config(nameTH2s, &_params);
+            if(!isA) itTH2s->second.setting(pairData.at(jd).second.first, pairData.at(jd).second.second);
+            if(isA) { itTH2s = TH2s->find(nameTH2s); if(!(itTH2s == TH2s->end())) 
+              TH2s->find(nameTH2s.c_str())->second.Fill(pairData.at(jd).second.first, pairData.at(jd).second.second); }
+          }
+          //--- 
           double minTime = 0; bool isMinTime = analysis->find(chamber)->second.minTime(&minTime, mods->at(im).c_str());
           if(isMinTime) {
             nameTH1s = Form("%d%s%sminTime", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
             titleTH1s = Form("%d%s%s", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
             itTH1s = dataRoot->addDqTH1D(nameTH1s, titleTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-            itTH1s->second.setting(minTime);
+            if(!isA) itTH1s->second.setting(minTime);
+            if(isA) { itTH1s = TH1s->find(nameTH1s); if(!(itTH1s == TH1s->end())) 
+              TH1s->find(nameTH1s.c_str())->second.Fill(minTime); }
           }
+          //---
           double maxTime = 0; bool isMaxTime = analysis->find(chamber)->second.maxTime(&maxTime, mods->at(im).c_str());
           if(isMaxTime) {
             nameTH1s = Form("%d%s%smaxTime", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
             titleTH1s = Form("%d%s%s", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
             itTH1s = dataRoot->addDqTH1D(nameTH1s, titleTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-            itTH1s->second.setting(maxTime);
+            if(!isA) itTH1s->second.setting(maxTime);
+            if(isA) { itTH1s = TH1s->find(nameTH1s); if(!(itTH1s == TH1s->end())) 
+              TH1s->find(nameTH1s.c_str())->second.Fill(maxTime); }
           }
+          //---
           int mult = 0; bool isMult = analysis->find(chamber)->second.multiplicity(&mult, mods->at(im).c_str());
           if(isMult) {
             nameTH1s = Form("%d%s%smultiplicity", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
             titleTH1s = Form("%d%s%s", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
             itTH1s = dataRoot->addDqTH1D(nameTH1s, titleTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-            itTH1s->second.setting(mult);
+            if(!isA) itTH1s->second.setting(mult);
+            if(isA) { itTH1s = TH1s->find(nameTH1s); if(!(itTH1s == TH1s->end())) 
+              TH1s->find(nameTH1s.c_str())->second.Fill(mult); }
           }
+          //---
           std::vector<int> clusterSize; bool isClusterSize = analysis->find(chamber)->second.clusterSize(&clusterSize, mods->at(im).c_str());
           if(isClusterSize) {
             nameTH1s = Form("%d%s%sclusterSize", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
             titleTH1s = Form("%d%s%s", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
             itTH1s = dataRoot->addDqTH1D(nameTH1s, titleTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
-            for( unsigned int i = 0; i < clusterSize.size(); i++)
-              itTH1s->second.setting(clusterSize.at(i));
+            for( unsigned int i = 0; i < clusterSize.size(); i++) {
+              if(!isA) itTH1s->second.setting(clusterSize.at(i));
+              if(isA) { itTH1s = TH1s->find(nameTH1s); if(!(itTH1s == TH1s->end())) 
+                TH1s->find(nameTH1s.c_str())->second.Fill(clusterSize.at(i)); }
+            }
             clusterSize.clear();
+          }
+    		  if(isA) { // fill eff plot
+            bool isEff = analysis->find(chamber)->second.efficiency(mods->at(im).c_str()); // count events
+            if(isEff) {
+    		  	  nameTGEs = Form("%d%s%sefficiency", chamber, _strDelim.c_str(), mods->at(im).c_str());   
+          	  itTGEs = dataRoot->addDqTGE(nameTGEs, nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
+    	      }
           }
         }
       }
+      int multLR = 0; bool isMultLR = analysis->find(chamber)->second.multiplicity(&multLR, "LR");
+      int multHR = 0; bool isMultHR = analysis->find(chamber)->second.multiplicity(&multHR, "HR");
+      nameTH2s = Form("%d%s%smultCorrelation", chamber, _strDelim.c_str(), "HRLR"); 
+      titleTH2s = Form("%d%s%s", chamber, _strDelim.c_str(), "HRLR"); 
+      itTH2s = dataRoot->addDqTH2D(nameTH2s, titleTH2s, TH2s); itTH2s->second.config(nameTH2s, &_params);
+      if(!isA) itTH2s->second.setting(multHR, multLR);
+      if(isA) { itTH2s = TH2s->find(nameTH2s); if(!(itTH2s == TH2s->end())) 
+      TH2s->find(nameTH2s.c_str())->second.Fill(multHR, multLR); }
     }
   }
   if(mod == "CONFIG END") {
@@ -1650,119 +922,7 @@ bool LyPeti::core(std::string mod, std::vector<std::string> *mods,
       }
     }
   }
-  if(mod == "ANALYSIS") {
-
-    for(unsigned int ic = 0; ic < event->chambers()->size(); ic++) {
-      int chamber = event->chambers()->at(ic); 
-      analysis->find(chamber)->second.setStrips(event->strips(chamber));
-    
-      // TRIGS
-      for(unsigned int jt = 0; jt < event->trigs(chamber)->size(); jt++) {
-        int boardID = event->trigs(chamber)->at(jt)->head->boardID; 
-        nameTH1s = Form("%d%snum%d%sbuffer", chamber, _strDelim.c_str(), boardID, _strDelim.c_str());
-        TH1s->find(nameTH1s.c_str())->second.Fill(event->trigs(chamber)->at(jt)->head->numOfCh);
-        //if(event->trigs(chamber)->at(jt)->head->numOfCh > 16) analysis->find(chamber)->second.skipEvent(true); 
-        //---
-        nameTH1s = Form("%d%snum%d%strigBCID", chamber, _strDelim.c_str(), boardID,_strDelim.c_str());
-        TH1s->find(nameTH1s.c_str())->second.Fill(event->trigs(chamber)->at(jt)->BCID);
-      }
-      unsigned int numberOfTrigers = event->trigs(chamber)->size();
-      nameTH1s = Form("%d%sNumberOfTrigers", chamber, _strDelim.c_str()); 
-      TH1s->find(nameTH1s.c_str())->second.Fill(numberOfTrigers);
-     
-      bool isTrigers = analysis->find(chamber)->second.fillTrigers(numberOfTrigers);
-    	if(isTrigers) {
-        for(unsigned int js = 0; js < event->strips(chamber)->size(); js++) {
-          // HR
-          double numberOfHitsHR = event->strips(chamber)->at(js).HR.size(); 
-          nameTH1s = Form("%d%sNumberOfHitsHR", chamber, _strDelim.c_str()); 
-          TH1s->find(nameTH1s.c_str())->second.Fill(numberOfHitsHR);
-          double numberOfHitsLR = event->strips(chamber)->at(js).LR.size();
-          nameTH1s = Form("%d%sNumberOfHitsLR", chamber, _strDelim.c_str()); 
-          TH1s->find(nameTH1s.c_str())->second.Fill(numberOfHitsLR);
-          for(unsigned int jh = 0; jh < event->strips(chamber)->at(js).HR.size(); jh++) {
-            bool isFilterHR = analysis->find(chamber)->second.filters("data_HR", js, jh); 
-            if(isFilterHR)
-              analysis->find(chamber)->second.fillEvents("data_HR", js, jh); 
-            bool isFilterNoiseHR = analysis->find(chamber)->second.filters("noise_HR", js, jh); 
-            if(isFilterNoiseHR) 
-              analysis->find(chamber)->second.fillEvents("noise_HR", js, jh); 
-            
-            analysis->find(chamber)->second.filters("deadTime_HR", js, jh); // skip if deadTime 
-          }
-          // LR
-     		  for(unsigned int jl = 0; jl < event->strips(chamber)->at(js).LR.size(); jl++) {
-            bool isFilterLR = analysis->find(chamber)->second.filters("data_LR", js, jl); 
-            if(isFilterLR)
-              analysis->find(chamber)->second.fillEvents("data_LR", js, jl); 
-            bool isFilterNoiseLR = analysis->find(chamber)->second.filters("noise_LR", js, jl); 
-            if(isFilterNoiseLR) 
-              analysis->find(chamber)->second.fillEvents("noise_LR", js, jl); 
-            
-            analysis->find(chamber)->second.filters("deadTime_LR", js, jl); // skip if deadTime 
-     		  }
-        }
-    	}
-      if(!analysis->find(chamber)->second.skipEvent()) {  
-        // ANALYSIS PART
-        std::string filters = analysis->find(chamber)->second.filtersStr(); 
-        for(unsigned int im = 0; im < mods->size(); im++) {
-          //std::cout << mods->at(im).c_str() << std::endl;
-          analysis->find(chamber)->second.algos(mods->at(im));
-          
-          std::string modParams = analysis->find(chamber)->second.modParamsStr(mods->at(im)); 
-          
-          std::vector<std::pair<double, double>> data = analysis->find(chamber)->second.data(mods->at(im).c_str());
-          for(unsigned int jd = 0; jd < data.size(); jd++) { 
-            nameTH1s = Form("%d%s%sstripProfile", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
-            TH1s->find(nameTH1s.c_str())->second.Fill(data.at(jd).first);
-            //--- 
-            nameTH1s = Form("%d%s%stimeProfile", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
-            TH1s->find(nameTH1s.c_str())->second.Fill(data.at(jd).second);
-            
-            nameTH2s = Form("%d%s%sstripTimeProfile", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
-            TH2s->find(nameTH2s.c_str())->second.Fill(data.at(jd).second, data.at(jd).first);
-            
-            nameTH1s = Form("%d%s%d%s%sTimeProfile", chamber, _strDelim.c_str(), (int)data.at(jd).first, _strDelim.c_str(), mods->at(im).c_str()); 
-            auto itStrip = TH1s->find(nameTH1s);
-            if(!(itStrip == TH1s->end())) {
-              TH1s->find(nameTH1s.c_str())->second.Fill(data.at(jd).second);
-            }
-          }
-          double minTime = 0; bool isMinTime = analysis->find(chamber)->second.minTime(&minTime, mods->at(im).c_str());
-          if(isMinTime) {
-            nameTH1s = Form("%d%s%sminTime", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
-            TH1s->find(nameTH1s.c_str())->second.Fill(minTime);
-          }
-          double maxTime = 0; bool isMaxTime = analysis->find(chamber)->second.maxTime(&maxTime, mods->at(im).c_str());
-          if(isMaxTime) {
-            nameTH1s = Form("%d%s%smaxTime", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
-            TH1s->find(nameTH1s.c_str())->second.Fill(maxTime);
-          }
-          int mult = 0; bool isMult = analysis->find(chamber)->second.multiplicity(&mult, mods->at(im).c_str());
-          if(isMult) {
-            nameTH1s = Form("%d%s%smultiplicity", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
-            TH1s->find(nameTH1s.c_str())->second.Fill(mult);
-          }
-          std::vector<int> clusterSize; bool isClusterSize = analysis->find(chamber)->second.clusterSize(&clusterSize, mods->at(im).c_str());
-          if(isClusterSize) {
-            nameTH1s = Form("%d%s%sclusterSize", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
-            auto itCS = TH1s->find(nameTH1s.c_str());
-            for(unsigned int i = 0; i < clusterSize.size(); i++)
-              itCS->second.Fill(clusterSize.at(i));
-            clusterSize.clear();
-          }
-    	  	bool isEff = analysis->find(chamber)->second.efficiency(mods->at(im).c_str()); // count events
-          if(isEff) {
-    	  		nameTGEs = Form("%d%s%sefficiency", chamber, _strDelim.c_str(), mods->at(im).c_str());   
-          	itTGEs = dataRoot->addDqTGE(nameTGEs, nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
-    	    }
-        }
-      }
-    }
-  }
   if(mod == "ANALYSIS END") {
-
 
     for(unsigned int ic = 0; ic < event->chambers()->size(); ic++) {
       int chamber = event->chambers()->at(ic); 
@@ -1781,23 +941,33 @@ bool LyPeti::core(std::string mod, std::vector<std::string> *mods,
 
       }
     }
-
     for(unsigned int ic = 0; ic < event->chambers()->size(); ic++) {
       int chamber = event->chambers()->at(ic); 
-      std::string filters = analysis->find(chamber)->second.filtersStr(); 
-      double numSkipedTrigers = 0; double eNumSkipedTrigers = 0; bool isNumSkipedTrigers = analysis->find(chamber)->second.getNumSkipedTrigers(&numSkipedTrigers); 
-    	if(isNumSkipedTrigers) {
-    	  double value = analysis->find(chamber)->second.getValue(run); double eValue = 0;
-    		nameTGEs = Form("%d%snumberOfSkipedEventsWithTriger", chamber, _strDelim.c_str());   
+      
+      nameTH2s = Form("%d%s%smultCorrelation", chamber, _strDelim.c_str(), "HRLR"); 
+      auto it = TH2s->find(nameTH2s);
+      if(!(it == TH2s->end())) {
+        double correlation = it->second.GetCorrelationFactor();
+        double value = analysis->find(chamber)->second.getValue(run); double eValue = 0;
+        nameTGEs = Form("%d%s%smultCorr", chamber, _strDelim.c_str(), "HRLR");   
         itTGEs = dataRoot->addDqTGE(nameTGEs, nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
-        TGEs->find(nameTGEs.c_str())->second->setting(value, eValue, numSkipedTrigers, eNumSkipedTrigers);
-    	}
+        TGEs->find(nameTGEs.c_str())->second->setting(value, eValue, correlation, 0);
+      }
+      
+      std::string filters = analysis->find(chamber)->second.filtersStr(); 
     	double numTrigers = 0; double eNumTrigers = 0; bool isNumTrigers = analysis->find(chamber)->second.getNumTrigers(&numTrigers); 
     	if(isNumTrigers) {
     	  double value = analysis->find(chamber)->second.getValue(run); double eValue = 0;
     		nameTGEs = Form("%d%snumberOfEventsWithTriger", chamber,  _strDelim.c_str());   
         itTGEs = dataRoot->addDqTGE(nameTGEs, nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
         TGEs->find(nameTGEs.c_str())->second->setting(value, eValue, numTrigers, eNumTrigers);
+    	}
+      double numSkipedTrigers = 0; bool isNumSkipedTrigers = analysis->find(chamber)->second.getNumSkipedTrigers(&numSkipedTrigers); 
+    	if(isNumSkipedTrigers) {
+    	  double value = analysis->find(chamber)->second.getValue(run); double eValue = 0;
+    		nameTGEs = Form("%d%snumberOfSkipedEventsWithTriger", chamber, _strDelim.c_str());   
+        itTGEs = dataRoot->addDqTGE(nameTGEs, nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
+        TGEs->find(nameTGEs.c_str())->second->setting(value, eValue, numSkipedTrigers/numTrigers, 0);
     	}
     	int numEvents = analysis->find(chamber)->second.getNumberEvents();
     	double value = analysis->find(chamber)->second.getValue(run); double eValue = 0;
@@ -1830,6 +1000,9 @@ bool LyPeti::core(std::string mod, std::vector<std::string> *mods,
     			  nameTGEs = Form("%d%s%d%s%srateStrip", chamber, _strDelim.c_str(), is, _strDelim.c_str(), mods->at(im).c_str());   
             itTGEs = dataRoot->addDqTGE(nameTGEs, nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
             TGEs->find(nameTGEs.c_str())->second->setting(value, eValue, noise, eNoise);
+    			  nameTG2Ds = Form("%d%s%srateStrips", chamber, _strDelim.c_str(), mods->at(im).c_str());   
+            itTG2Ds = dataRoot->addDqTG2D(nameTG2Ds, nameTG2Ds, TG2Ds); itTG2Ds->second->config(nameTG2Ds, &_params);
+            TG2Ds->find(nameTG2Ds.c_str())->second->setting(is, value, noise);
     		  }
         }
         double noise = 0; double eNoise = 0; bool isNoise = analysis->find(chamber)->second.noise(&noise, &eNoise, -1, -1, mods->at(im).c_str());
@@ -1853,7 +1026,7 @@ bool LyPeti::core(std::string mod, std::vector<std::string> *mods,
     		nameTH1s = Form("%d%s%sclusterSize", chamber, _strDelim.c_str(), mods->at(im).c_str());
         auto itClusterSize = TH1s->find(nameTH1s);
         if(!(itClusterSize == TH1s->end())) {
-          double clusterSize = itClusterSize->second.GetMean(); double eClusterSize = itClusterSize->second.GetRMS(itClusterSize->second.GetEntries());
+          double clusterSize = itClusterSize->second.GetMean(); double eClusterSize = itClusterSize->second.GetRMS()/std::sqrt(itClusterSize->second.GetEntries());
     		  double value = analysis->find(chamber)->second.getValue(run); double eValue = 0;
     		  nameTGEs = Form("%d%s%sclusterSize", chamber, _strDelim.c_str(), mods->at(im).c_str());   
           itTGEs = dataRoot->addDqTGE(nameTGEs, nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
@@ -1880,6 +1053,7 @@ bool LyPeti::petiroc(std::pair<int, int> run, std::vector<std::string> *mods,
                      LyPetiEvent *event, std::map<int, LyPetiAnalysis> *analysis, 
                      DqRoot *dataRoot, 
                      std::map<std::string, DqTGE*> *TGEs, 
+                     std::map<std::string, DqTG2D*> *TG2Ds, 
                      std::map<std::string, DqMTGE*> *MTGEs, 
                      std::map<std::string, DqTH1D> *TH1s, 
                      std::map<std::string, DqTH2D> *TH2s)
@@ -1937,7 +1111,6 @@ bool LyPeti::petiroc(std::pair<int, int> run, std::vector<std::string> *mods,
 
     for(unsigned int l = 0; l < loops.size(); l++) {
       std::cout << loops.at(l) << " loop..." << std::endl;
-
       bool isFindRun = false;
 		  for(unsigned int i = 0; i < _inputs.size(); i++) {
 		  	
@@ -1993,15 +1166,11 @@ bool LyPeti::petiroc(std::pair<int, int> run, std::vector<std::string> *mods,
   	        continue;
   	      }
 	        // =====================================================================
-            bool isRaw = raw(loops.at(l), event, analysis, dataRoot, &treesHR, &treesLR, run.first, 
+            raw(loops.at(l), event, analysis, dataRoot, &treesHR, &treesLR, run.first, 
                              &number_HR, &time_HR, &triger_HR, &ch_HR, &size_HR, &dtime_HR, &BCID_HR, &coarse_HR, &fine_HR, 
                              &number_LR, &time_LR, &triger_LR, &ch_LR, &size_LR, &dtime_LR, &BCID_LR, &coarse_LR, &fine_LR);
-            bool isOffset = offset(loops.at(l), mods, run.first, event, analysis, dataRoot, TGEs, TH1s, TH2s);
-            bool isCore = core(loops.at(l), mods, run.first, event, analysis, dataRoot, TGEs, TH1s, TH2s);
-//            bool isATime = ATime(loops.at(l), mods, run.first, event, analysis, dataRoot, TGEs, TH1s, TH2s);
-//            bool isATimeSingleChamber = ATimeSingleChamber(loops.at(l), mods, run.first, event, analysis, dataRoot, TGEs, TH1s, TH2s);
-//            bool isStripStudy = stripStudy(loops.at(l), mods, run.first, event, analysis, dataRoot, TGEs, TH1s, TH2s);
-//            bool isClusterAlgoTest = ClusterAlgoTest(loops.at(l), mods, run.first, event, analysis, dataRoot, TGEs, MTGEs, TH1s, TH2s);
+            offset(loops.at(l), mods, run.first, event, analysis, dataRoot, TGEs, TH1s);
+            core(loops.at(l), mods, run.first, event, analysis, dataRoot, TGEs, TG2Ds, TH1s, TH2s);
           // =====================================================================
           for(unsigned int ic = 0; ic < event->chambers()->size(); ic++)
             analysis->find(event->chambers()->at(ic))->second.clear(loops.at(l) + " EVENT");
@@ -2020,25 +1189,19 @@ bool LyPeti::petiroc(std::pair<int, int> run, std::vector<std::string> *mods,
 		  		}
   	    }
 	    }
-      if(loops.at(l) == "CONFIG" || loops.at(l) == ("OFFSET" + _strDelim + "CONFIG")) {
+      if(loops.at(l) == "CONFIG" || loops.at(l) == ("OFFSET" + _strDelim + "CONFIG"))
         for(unsigned int ic = 0; ic < event->chambers()->size(); ic++)
           analysis->find(event->chambers()->at(ic))->second.clear(loops.at(l) + " RUN");
-      }
 	    // =======================================================================
-      bool isRaw = raw(loops.at(l) + " END", event, analysis, dataRoot, &treesHR, &treesLR, run.first, 
+      raw(loops.at(l) + " END", event, analysis, dataRoot, &treesHR, &treesLR, run.first, 
                              &number_HR, &time_HR, &triger_HR, &ch_HR, &size_HR, &dtime_HR, &BCID_HR, &coarse_HR, &fine_HR, 
                              &number_LR, &time_LR, &triger_LR, &ch_LR, &size_LR, &dtime_LR, &BCID_LR, &coarse_LR, &fine_LR);
-      bool isOffset = offset(loops.at(l) + " END", mods, run.first, event, analysis, dataRoot, TGEs, TH1s, TH2s);
-      bool isCore = core(loops.at(l) + " END", mods, run.first, event, analysis, dataRoot, TGEs, TH1s, TH2s);
-//      bool isATime = ATime(loops.at(l) + " END", mods, run.first, event, analysis, dataRoot, TGEs, TH1s, TH2s);
-//      bool isATimeSingleChamber = ATimeSingleChamber(loops.at(l) + " END", mods, run.first, event, analysis, dataRoot, TGEs, TH1s, TH2s);
-//      bool isStripStudy = stripStudy(loops.at(l) + " END", mods, run.first, event, analysis, dataRoot, TGEs, TH1s, TH2s);
-//      bool isClusterAlgoTest = ClusterAlgoTest(loops.at(l) + " END", mods, run.first, event, analysis, dataRoot, TGEs, MTGEs, TH1s, TH2s);
+      offset(loops.at(l) + " END", mods, run.first, event, analysis, dataRoot, TGEs, TH1s);
+      core(loops.at(l) + " END", mods, run.first, event, analysis, dataRoot, TGEs, TG2Ds, TH1s, TH2s);
 	    // =======================================================================
-      if(loops.at(l) == "ANALYSIS" || loops.at(l) == ("OFFSET" + _strDelim +  "ANALYSIS")) {
+      if(loops.at(l) == "ANALYSIS" || loops.at(l) == ("OFFSET" + _strDelim +  "ANALYSIS"))
         for(unsigned int ic = 0; ic < event->chambers()->size(); ic++)
           analysis->find(event->chambers()->at(ic))->second.clear(loops.at(l) + " RUN");
-      }
     }
     return true;
 }
@@ -2063,6 +1226,7 @@ bool LyPeti::analysis()
   std::cout << "#-------------------------------------------------------------------------------" << std::endl;
   
   std::map<std::string, DqTGE*> TGEs;
+  std::map<std::string, DqTG2D*> TG2Ds;
   std::map<std::string, DqMTGE*> MTGEs;
   for(unsigned int r = 0; r < RUNS.size(); r++) {
     std::cout << std::endl << "Run[" << r << "]: " << RUNS.at(r).first << std::endl;
@@ -2071,7 +1235,7 @@ bool LyPeti::analysis()
     std::map<std::string, DqTH2D> TH2s;
 
     // =========================================================================
-    bool isPetiroc = this->petiroc(RUNS.at(r), &mods, &event, &analysis, &dataRoot, &TGEs, &MTGEs, &TH1s, &TH2s);
+    this->petiroc(RUNS.at(r), &mods, &event, &analysis, &dataRoot, &TGEs, &TG2Ds, &MTGEs, &TH1s, &TH2s);
     // =========================================================================
     
     // ANALYSIS ALL RUNS
@@ -2079,7 +1243,7 @@ bool LyPeti::analysis()
     
     // =========================================================================
     
-    bool isSaveHists = this->saveHists(RUNS.at(r).first, &analysis, &dataRoot, &TH1s, &TH2s);
+    this->saveHists(RUNS.at(r).first, &analysis, &dataRoot, &TH1s, &TH2s);
     TH1s.clear(); TH2s.clear();
   }
       
@@ -2088,10 +1252,9 @@ bool LyPeti::analysis()
 	std::cout  << "Comparing cookies and Cleaning the kitchen..." << std::endl;
 
   
-  bool isSaveGraphs = this->saveGraphs(&analysis, &dataRoot, &TGEs);
-  TGEs.clear();
-  bool isSaveMGraphs = this->saveMGraphs(&analysis, &dataRoot, &MTGEs);
-  MTGEs.clear();
+  this->saveGraphs(&analysis, &dataRoot, &TGEs); TGEs.clear();
+  this->saveGraphs(&analysis, &dataRoot, &TG2Ds); TG2Ds.clear();
+  this->saveGraphs(&analysis, &dataRoot, &MTGEs); MTGEs.clear();
   
 	std::cout << "You're welcome!" << std::endl;
   std::cout << "#---\n" << std::endl;

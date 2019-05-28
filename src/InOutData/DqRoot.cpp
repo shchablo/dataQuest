@@ -77,11 +77,14 @@ bool DqRoot::writeCanvas(std::string dirName, TCanvas* canvas)
   return true;
 }
 
-bool DqRoot::writeDqTGEtoCanvasCMS(std::string path, DqTGE* object, bool isCanvas)
+bool DqRoot::writeDqToCanvasCMS(std::string path, DqTGE* object, bool isCanvas)
 {
 	TCanvas *c1 = new TCanvas(Form("c_%s", object->GetName()), Form("%s", object->GetName()));
 	object->GetXaxis()->SetTitle(object->getTitleX().c_str());
 	object->GetYaxis()->SetTitle(object->getTitleY().c_str());
+  object->SetMarkerColor(1);
+  object->SetMarkerSize(0.5);
+  object->SetMarkerStyle(20);
   object->Draw();
   TString tsPath(path.c_str());
   const char* cDirName = tsPath.Data();
@@ -97,7 +100,32 @@ bool DqRoot::writeDqTGEtoCanvasCMS(std::string path, DqTGE* object, bool isCanva
   delete c1;
 	return true;
 }
-bool DqRoot::writeDqMTGEtoCanvasCMS(std::string path, DqMTGE* object, bool isCanvas)
+bool DqRoot::writeDqToCanvasCMS(std::string path, DqTG2D* object, bool isCanvas)
+{
+	TCanvas *c1 = new TCanvas(Form("c_%s", object->GetName()), Form("%s", object->GetName()));
+	//object->GetXaxis()->SetTitle(object->getTitleX().c_str());
+	//object->GetYaxis()->SetTitle(object->getTitleY().c_str());
+	//object->GetZaxis()->SetTitle(object->getTitleZ().c_str());
+	object->GetXaxis()->SetTitleOffset(2);
+	object->GetYaxis()->SetTitleOffset(2);
+	object->GetZaxis()->SetTitleOffset(2);
+  object->Draw("surf1");
+  TString tsPath(path.c_str());
+  const char* cDirName = tsPath.Data();
+  if(isCanvas) {
+	  c1->SetCanvasSize(700, 600);
+	  c1->SetWindowSize(700, 600);
+	  c1->SetGrid();
+	  c1->SetGrid();
+    TString c1Path((path + "/CMS/").c_str());
+    const char* c1DirName = c1Path.Data();
+	  this->writeObject(c1DirName, c1);
+  }
+	this->writeObject(cDirName, object);
+  delete c1;
+	return true;
+}
+bool DqRoot::writeDqToCanvasCMS(std::string path, DqMTGE* object, bool isCanvas)
 {
 	TCanvas *c1 = new TCanvas(Form("c_%s", object->GetName()), Form("%s", object->GetName()));
 	//object->GetXaxis()->SetTitle(object->getTitleX().c_str());
@@ -117,10 +145,11 @@ bool DqRoot::writeDqMTGEtoCanvasCMS(std::string path, DqMTGE* object, bool isCan
   delete c1;
 	return true;
 }
-bool DqRoot::writeTH1toCanvasCMS(std::string path, TH1* object, TF1 *fit,  bool isCanvas)
+bool DqRoot::writeDqToCanvasCMS(std::string path, TH1* object, TF1 *fit,  bool isCanvas)
 {
   TCanvas *c1 = new TCanvas(Form("c_%s", object->GetName()), Form("%s", object->GetName()));
-  object->SetFillColor(4);
+  object->SetFillColor(38);
+  object->SetLineColor(1);
   TString tsPath(path.c_str());
   const char* cDirName = tsPath.Data();
 	this->writeObject(cDirName, object);
@@ -146,34 +175,6 @@ bool DqRoot::writeTH1toCanvasCMS(std::string path, TH1* object, TF1 *fit,  bool 
     c1->SetFrameFillStyle(0);
     c1->SetFrameBorderMode(0);
     
- 		TLatex * tex = new TLatex(0.17,0.94,"");
-    tex->SetNDC();
-    tex->SetTextFont(42);
-    tex->SetLineWidth(2);
-    tex->Draw();
-    // ---
-		tex = new TLatex(0.17,0.94,"CMS");
-    tex->SetNDC();
-    tex->SetTextSize(0.06);
-    tex->SetLineWidth(2);
-    tex->Draw();
-    tex = new TLatex(0.27,0.973,"Preliminary");
-    tex->SetNDC();
-    tex->SetTextAlign(13);
-    tex->SetTextFont(52);
-    tex->SetTextSize(0.0456);
-    tex->SetLineWidth(2);
-    tex->Draw();
-    
-    tex = new TLatex(0.952,0.94,"");
-    tex->SetNDC();
-    tex->SetTextAlign(31);
-    tex->SetTextFont(42);
-    tex->SetLineWidth(2);
-    tex->Draw();
-		// ---
-	  //c1->SetGrid();
-
 		c1->Update();
     TString c1Path((path + "/CMS/").c_str());
     const char* c1DirName = c1Path.Data();
@@ -182,7 +183,7 @@ bool DqRoot::writeTH1toCanvasCMS(std::string path, TH1* object, TF1 *fit,  bool 
 	delete c1;
 	return true;
 }
-bool DqRoot::writeTH2toCanvasCMS(std::string path, TH2* object, bool isCanvas)
+bool DqRoot::writeDqToCanvasCMS(std::string path, TH2* object, bool isCanvas)
 {
 	TCanvas *c1 = new TCanvas("c_", "");
 	object->Draw();
@@ -200,7 +201,7 @@ bool DqRoot::writeTH2toCanvasCMS(std::string path, TH2* object, bool isCanvas)
   delete c1;
 	return true;
 }
-bool DqRoot::writeTMGtoCanvasCMS(std::string path, std::vector<TH1>* objects, bool isCanvas)
+bool DqRoot::writeDqToCanvasCMS(std::string path, std::vector<TH1>* objects, bool isCanvas)
 {
   
 	TCanvas *c1 = new TCanvas("c_", "");
@@ -254,6 +255,15 @@ std::map<std::string, DqTGE*>::iterator DqRoot::addDqTGE(std::string name, std::
     if(it == dqTGEs->end()) {
       dqTGEs->insert(std::make_pair(name, new DqTGE{Form("gr_%s", name.c_str()), Form("%s", title.c_str())}));
       it = dqTGEs->find(name.c_str());
+    }
+    return it;
+}
+std::map<std::string, DqTG2D*>::iterator DqRoot::addDqTG2D(std::string name, std::string title, std::map<std::string, DqTG2D*>* dqTG2Ds)
+{
+    auto it = dqTG2Ds->find(name.c_str());
+    if(it == dqTG2Ds->end()) {
+      dqTG2Ds->insert(std::make_pair(name, new DqTG2D{Form("gr_%s", name.c_str()), Form("%s", title.c_str())}));
+      it = dqTG2Ds->find(name.c_str());
     }
     return it;
 }

@@ -47,63 +47,35 @@ public:
                        std::map<std::string, DqTH1D> *TH1s, std::map<std::string, DqTH2D> *TH2s);
   bool saveGraphs(std::map<int, LyPetiAnalysis> *analysis, DqRoot *dataRoot,
                         std::map<std::string, DqTGE*> *TGEs);
-  bool saveMGraphs(std::map<int, LyPetiAnalysis> *analysis, DqRoot *dataRoot,
+  bool saveGraphs(std::map<int, LyPetiAnalysis> *analysis, DqRoot *dataRoot,
                         std::map<std::string, DqMTGE*> *MTGEs);
+  bool saveGraphs(std::map<int, LyPetiAnalysis> *analysis, DqRoot *dataRoot,
+                        std::map<std::string, DqTG2D*> *TG2Ds);
   //----------------------------------------------------------------------------
   bool petiroc(std::pair<int, int> run, std::vector<std::string> *mods,  
                      LyPetiEvent *event, std::map<int, LyPetiAnalysis> *analysis, 
                      DqRoot *dataRoot, 
                      std::map<std::string, DqTGE*> *TGEs, 
+                     std::map<std::string, DqTG2D*> *TG2Ds, 
                      std::map<std::string, DqMTGE*> *MTGEs, 
                      std::map<std::string, DqTH1D> *TH1s, 
                      std::map<std::string, DqTH2D> *TH2s);
   /* analysis */
-  bool stripStudy(std::string mod, std::vector<std::string> *mods, 
-                  int run, LyPetiEvent *event, std::map<int, LyPetiAnalysis> *analysis,
-                  DqRoot *dataRoot,
-                  std::map<std::string, DqTGE*> *TGEs, 
-                  std::map<std::string, DqTH1D> *TH1s, 
-                  std::map<std::string, DqTH2D> *TH2s);
   bool raw(std::string mod, LyPetiEvent *event, std::map<int, LyPetiAnalysis> *analysis, 
                  DqRoot *dataRoot, std::map<int, TTree*> *treesHR, std::map<int, TTree*> *treesLR,
                  int run, 
                  Int_t *number_HR, Float_t *time_HR, Float_t *triger_HR, Float_t *ch_HR, Int_t *size_HR, Float_t *dtime_HR, uint16_t *BCID_HR, uint64_t *coarse_HR, uint8_t *fine_HR,   
                  Int_t *number_LR, Float_t *time_LR, Float_t *triger_LR, Float_t *ch_LR, Int_t *size_LR, Float_t *dtime_LR, uint16_t *BCID_LR, uint64_t *coarse_LR, uint8_t *fine_LR); 
-  bool offsetChain(std::string mod, std::vector<std::string> *mods,  
-              int run, int chamber, LyPetiEvent *event, std::map<int, LyPetiAnalysis> *analysis,
-              DqRoot *dataRoot,
-              std::map<std::string, DqTGE*> *TGEs, 
-              std::map<std::string, DqTH1D> *TH1s, 
-              std::map<std::string, DqTH2D> *TH2s);
   bool offset(std::string mod, std::vector<std::string> *mods, 
                   int run, LyPetiEvent *event, std::map<int, LyPetiAnalysis> *analysis,
                   DqRoot *dataRoot,
                   std::map<std::string, DqTGE*> *TGEs, 
-                  std::map<std::string, DqTH1D> *TH1s, 
-                  std::map<std::string, DqTH2D> *TH2s);
+                  std::map<std::string, DqTH1D> *TH1s); 
   bool core(std::string mod, std::vector<std::string> *mods, 
                   int run, LyPetiEvent *event, std::map<int, LyPetiAnalysis> *analysis,
                   DqRoot *dataRoot,
                   std::map<std::string, DqTGE*> *TGEs, 
-                  std::map<std::string, DqTH1D> *TH1s, 
-                  std::map<std::string, DqTH2D> *TH2s);
-  bool ATime(std::string mod, std::vector<std::string> *mods, 
-                  int run, LyPetiEvent *event, std::map<int, LyPetiAnalysis> *analysis,
-                  DqRoot *dataRoot,
-                  std::map<std::string, DqTGE*> *TGEs, 
-                  std::map<std::string, DqTH1D> *TH1s, 
-                  std::map<std::string, DqTH2D> *TH2s);
-  bool ATimeSingleChamber(std::string mod, std::vector<std::string> *mods, 
-                  int run, LyPetiEvent *event, std::map<int, LyPetiAnalysis> *analysis,
-                  DqRoot *dataRoot,
-                  std::map<std::string, DqTGE*> *TGEs, 
-                  std::map<std::string, DqTH1D> *TH1s, 
-                  std::map<std::string, DqTH2D> *TH2s);
-  bool ClusterAlgoTest(std::string mod, std::vector<std::string> *mods, 
-                  int run, LyPetiEvent *event, std::map<int, LyPetiAnalysis> *analysis,
-                  DqRoot *dataRoot,
-                  std::map<std::string, DqTGE*> *TGEs, 
-                  std::map<std::string, DqMTGE*> *MTGEs, 
+                  std::map<std::string, DqTG2D*> *TG2Ds, 
                   std::map<std::string, DqTH1D> *TH1s, 
                   std::map<std::string, DqTH2D> *TH2s);
   /* Loop function */ 

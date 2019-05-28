@@ -45,11 +45,11 @@ struct strip
   std::vector<payload*> HR;
   std::vector<payload*> LR;
   std::vector<payload*> trigs;
+  std::vector<payload*> counter;
   
   double timeOffSet;
   double timeOffSetHR;
   double timeOffSetLR;
-  double inverse;
 };
 }
 class LyPetiEvent
@@ -77,7 +77,7 @@ public:
                std::vector<double> HR, std::vector<double> timeOffSetHR,  
                std::vector<double> LR, std::vector<double> timeOffSetLR,
                std::vector<double> timeOffSet,
-               std::vector<double> inverse,
+               std::vector<double> counter,
                std::vector<double> chamberNum);
 
   lyBuf::header* header(int index);
@@ -109,5 +109,6 @@ protected:
                               // int[5] - LR time offset;
                               // int[6] - timeOffset;
                               // int[7] - chamber;
+                              // int[8] - counter;
 };
 #endif 
