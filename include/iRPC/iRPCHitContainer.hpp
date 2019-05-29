@@ -13,13 +13,6 @@
 
 #include <vector>
 
-/*!
-	\brief Container for iRPC hits. 
-	\author Shchablo 
-	\version 1.0
-	\date May 2019
-	This class defines a container based on the set from std container for hits.
-*/
 class iRPCHit;
 typedef std::vector<iRPCHit> iRPCHitContainer;
 

@@ -35,7 +35,7 @@ TMP_PATH=""
 FOLDERS=$(echo $ABS_SCRIPT_PATH | tr "/" "\n")
 for FOLDER in $FOLDERS
 do
-  if [ "$FOLDER" == "dataQuest_iRPCCluster" ]; then
+  if [ "$FOLDER" == "dataQuest" ]; then
     IS_DATAQUEST_FOLDER="1"
     echo $FOLDER
     ABS_DATAQUEST_PATH="$TMP_PATH/$FOLDER"

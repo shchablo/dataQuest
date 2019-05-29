@@ -13,14 +13,6 @@
 
 #include <vector>
 
-/*!
-	\brief Container for iRPC clusters. 
-	\author Shchablo 
-	\version 1.0
-	\date May 2019
-	This class defines a container based on the set from std container for clusters.
-*/
-
 class iRPCCluster;
 typedef std::vector<iRPCCluster> iRPCClusterContainer;
 

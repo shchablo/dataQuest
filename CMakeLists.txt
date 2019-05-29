@@ -36,6 +36,9 @@ project(dq)
     ### LyPeti (Lyon Petiroc chip)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/LyPeti)
     ###
+    ### iRPC
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/iRPC)
+    ###
     ### Features
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/Features)
     ###
@@ -58,12 +61,15 @@ file(GLOB MAIN_SRC "*.cpp")
     ### LyPeti (Lyon Petiroc chip)
     file(GLOB LYPETI_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/LyPeti/*.cpp")
     ###
+    ### iRPC
+    file(GLOB IRPC_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/iRPC/*.cpp")
+    ###
     ### Features
     file(GLOB FEATURES_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/Features/*.cpp")
     ###
   ##
   set(CPPS ${MAIN_SRC} ${DQ_SRC} ${IN_OUT_DATA_SRC} ${DQ_ROOT_SRC} 
-    ${WEE2UI_SRC} ${LYPETI_SRC} ${FEATURES_SRC})
+    ${WEE2UI_SRC} ${LYPETI_SRC} ${IRPC_SRC} ${FEATURES_SRC})
 #-------------------------------------------------------------------------------
 
 # COMPILER SETTING -------------------------------------------------------------

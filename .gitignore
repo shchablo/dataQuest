@@ -4,8 +4,8 @@
 /results/
 /cards/
 /scrips/
+/doxygen/output/
 !/scrips/public/
-
 # Prerequisites
 *.d
 

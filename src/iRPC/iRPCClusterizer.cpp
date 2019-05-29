@@ -1,17 +1,18 @@
 #include "iRPCClusterizer.hpp"
 
+/* iRPC */
 #include "iRPCCluster.hpp"
 #include "iRPCInfo.hpp"
 #include "iRPCHit.hpp"
 #include "iRPCHitContainer.hpp"
-
+/* std */
 #include <algorithm>
 #include <limits>
 #include <map>
 #include <thread>
 
-//#include <iostream> // tests
-//#include <iomanip> // tests
+// #include <iostream> // tests
+// #include <iomanip> // tests
 
 iRPCClusterizer::iRPCClusterizer() {} 
 iRPCClusterizer::~iRPCClusterizer() {}
@@ -48,8 +49,10 @@ iRPCClusterContainer iRPCClusterizer::doAction(const RPCDigiCollection::Range& d
 			missed.push_back(hit); // should be empty
 		}	
 	}
-	
-	// Do clustering for HR and LR separate.
+
+  iRPCHitContainer hr, lr; // Fill these containers from raw data.
+
+	// Clustering for HR and LR separate.
 	iRPCClusterContainer chr, clr;
  	std::thread thr (&iRPCClusterizer::clustering, this, info.thrTimeHR(), std::ref(hhr), std::ref(chr));
  	std::thread tlr (&iRPCClusterizer::clustering, this, info.thrTimeLR(), std::ref(hlr), std::ref(clr));
@@ -57,11 +60,11 @@ iRPCClusterContainer iRPCClusterizer::doAction(const RPCDigiCollection::Range& d
   thr.join(); tlr.join();
 	hlr.clear(); hhr.clear();
 
-	// Do association between HR and LR.
+	// Association between HR and LR.
 	iRPCClusterContainer clusters = association(info, chr, clr);
   chr.clear(); clr.clear();
 	 	
-   return finalCluster;
+   return clusters;
 }
 */
 
@@ -71,7 +74,7 @@ iRPCClusterContainer iRPCClusterizer::doAction(std::vector<std::pair<double, dou
 {
   info.setThrTimeHR(10); info.setThrTimeLR(10);
   info.setThrDeltaTimeMin(-30); info.setThrDeltaTimeMax(30);
-  info.isAND(false);
+  info.isAND(true);
   iRPCHitContainer hlr, hhr;
 	// fill data order to map (for dataQuest).
 	for(unsigned int ih = 0; ih < dataHR.size(); ih++) {
@@ -83,7 +86,7 @@ iRPCClusterContainer iRPCClusterizer::doAction(std::vector<std::pair<double, dou
 		hlr.push_back(hit);
 	}	
 
-	// Do clustering for HR and LR separate.
+	// Clustering for HR and LR separate.
 	iRPCClusterContainer chr, clr;
  	std::thread thr (&iRPCClusterizer::clustering, this, info.thrTimeHR(), std::ref(hhr), std::ref(chr));
  	std::thread tlr (&iRPCClusterizer::clustering, this, info.thrTimeLR(), std::ref(hlr), std::ref(clr));
@@ -91,10 +94,14 @@ iRPCClusterContainer iRPCClusterizer::doAction(std::vector<std::pair<double, dou
   thr.join(); tlr.join();
 	hlr.clear(); hhr.clear();
 
-	// Do association between HR and LR.
-	iRPCClusterContainer clusters = association(info, chr, clr);
+	// Association between HR and LR.
+	iRPCClusterContainer clusters = association(info.isAND(), info.thrDeltaTimeMin(), info.thrDeltaTimeMax(), chr, clr);
   chr.clear(); clr.clear();
-
+  
+  // Compute clusters parameters.
+	for(auto cl = clusters.begin(); cl != clusters.end(); ++cl)
+    cl->compute(std::ref(info));
+  
 	return clusters;
 }
 
@@ -108,7 +115,6 @@ bool iRPCClusterizer::clustering(float thrTime, iRPCHitContainer &hits, iRPCClus
 					{ return h1.channel() < h2.channel(); });
 	
 	//// Print data (test) RAW DATA
-	//std::cout << "\n------------------------------------------------------\n";
   //for(auto hit = hits.begin(); hit != hits.end(); ++hit)
 	//	std::cout << hit->channel() << " ";
 	
@@ -128,7 +134,7 @@ bool iRPCClusterizer::clustering(float thrTime, iRPCHitContainer &hits, iRPCClus
 						{ return h1.time() < h2.time(); });
 	}
 	
-	// Print data (test) Groups of hits
+	//// Print data (test) Groups of hits
 	//for(auto channel = channels.begin(); channel != channels.end(); ++channel) {
   //	std::cout << '\n' << channel->first << ": ";
 	//	for(unsigned int i = 0; i < channel->second.size(); i++) {
@@ -139,61 +145,61 @@ bool iRPCClusterizer::clustering(float thrTime, iRPCHitContainer &hits, iRPCClus
 	// Fill clusters
 	unsigned int used = 0; unsigned int nHits = hits.size(); 
 	
-	auto begin = channels.begin(); auto next = std::next(channels.begin());  
+	auto front = channels.begin(); auto next = std::next(channels.begin());  
   
 	float minDelta = std::numeric_limits<float>::max();
   float delta = std::numeric_limits<float>::max();
-	unsigned int size = begin->second.size();	
+	unsigned int size = front->second.size();	
 	unsigned int nextSize = next->second.size();
 	unsigned int i = 0, ni = 0;	
 	unsigned int minI = 0, minNI = 0;	
 	
 	while(used != nHits) {
-		begin = channels.begin(); next = std::next(channels.begin());  
-		if((channels.size() >= 2) & (begin->first + 1 == next->first)) { 
-			 // find min delta between couple of hits for cluster (only when init)
-  			minDelta = std::numeric_limits<float>::max(); delta = std::numeric_limits<float>::max();
-				size = begin->second.size(); nextSize = next->second.size();
-				i = 0; ni = 0; minI = 0; minNI = 0;	
-  			while (i < size && ni < nextSize) {
-					delta = std::abs(begin->second.at(i).time() - next->second.at(ni).time());
-					if(minDelta > delta) {
-						minDelta = delta; minI = i; minNI = ni;
-					}
-  		    if(begin->second.at(i).time() <= next->second.at(ni).time()) ++i; else ++ni;
-			  }
-				// if minDelta below thresholt (param) fill two first hits in cluster
-				if(minDelta < thrTime) {
-					clusters.push_back(iRPCCluster()); clusters.back().addHit(begin->second.at(minI)); 
-					clusters.back().addHit(next->second.at(minNI)); 
-				
-					next->second.erase(next->second.begin() + minNI); used = used + 1;
-					if(next->second.size() == 0) channels.erase(next);
-					begin->second.erase(begin->second.begin() + minI); used = used + 1;
-					if(begin->second.size() == 0) channels.erase(begin);
+		front = channels.begin(); next = std::next(channels.begin());  
+		if((channels.size() >= 2) & (front->first + 1 == next->first)) { 
+			// find min delta between couple of hits for cluster (only when init)
+  		minDelta = std::numeric_limits<float>::max(); delta = std::numeric_limits<float>::max();
+			size = front->second.size(); nextSize = next->second.size();
+			i = 0; ni = 0; minI = 0; minNI = 0;	
+  		while (i < size && ni < nextSize) {
+				delta = std::abs(front->second.at(i).time() - next->second.at(ni).time());
+				if(minDelta > delta) {
+					minDelta = delta; minI = i; minNI = ni;
 				}
-				else { // fill only first hit in cluster
-					clusters.push_back(iRPCCluster()); clusters.back().addHit(begin->second.at(minI)); 
-					begin->second.erase(begin->second.begin() + minI); used = used + 1;
-					if(begin->second.size() == 0) channels.erase(begin);
-				}
-				// Сontinue Clustering
-				for(auto channel = channels.begin(); channel != channels.end(); ++channel) {
-					if(clusters.back().hits()->back().channel() + 1 == channel->first) {
-  					minDelta = std::numeric_limits<float>::max(); delta = std::numeric_limits<float>::max(); minI = 0;
-						for(unsigned int i = 0; i < channel->second.size(); i++) {
-							delta = std::abs(clusters.back().hits()->back().time() - channel->second.at(i).time());
-							if(minDelta > delta) {
-								minDelta = delta; minI = i;
-							}
-						}	
-						if(minDelta < thrTime) { // add hit to cluster
-							clusters.back().addHit(channel->second.at(minI)); 
-							channel->second.erase(channel->second.begin() + minI); used = used + 1;
-							if(channel->second.size() == 0) channels.erase(channel);
+  		  if(front->second.at(i).time() <= next->second.at(ni).time()) ++i; else ++ni;
+			}
+			// if minDelta below thresholt (param) fill two first hits in cluster
+			if(minDelta < thrTime) {
+				clusters.push_back(iRPCCluster()); clusters.back().addHit(front->second.at(minI)); 
+				clusters.back().addHit(next->second.at(minNI)); 
+			
+				next->second.erase(next->second.begin() + minNI); used = used + 1;
+				if(next->second.size() == 0) channels.erase(next);
+				front->second.erase(front->second.begin() + minI); used = used + 1;
+				if(front->second.size() == 0) channels.erase(front);
+			}
+			else { // fill only first hit in cluster
+				clusters.push_back(iRPCCluster()); clusters.back().addHit(front->second.at(minI)); 
+				front->second.erase(front->second.begin() + minI); used = used + 1;
+				if(front->second.size() == 0) channels.erase(front);
+			}
+			// Сontinue Clustering
+			for(auto channel = channels.begin(); channel != channels.end(); ++channel) {
+				if(clusters.back().hits()->back().channel() + 1 == channel->first) {
+  				minDelta = std::numeric_limits<float>::max(); delta = std::numeric_limits<float>::max(); minI = 0;
+					for(unsigned int i = 0; i < channel->second.size(); i++) {
+						delta = std::abs(clusters.back().hits()->back().time() - channel->second.at(i).time());
+						if(minDelta > delta) {
+							minDelta = delta; minI = i;
 						}
-					} 
-  			}
+					}	
+					if(minDelta < thrTime) { // add hit to cluster
+						clusters.back().addHit(channel->second.at(minI)); 
+						channel->second.erase(channel->second.begin() + minI); used = used + 1;
+						if(channel->second.size() == 0) channels.erase(channel);
+					}
+				} 
+  		}
 		}
 		else { // if it last channel or it isn't first channel in cluster - make cluster with single hit	
 			clusters.push_back(iRPCCluster()); clusters.back().addHit(channels.begin()->second.front());
@@ -203,7 +209,8 @@ bool iRPCClusterizer::clustering(float thrTime, iRPCHitContainer &hits, iRPCClus
 	}
 	
 	//// Print data (test) Cluster form single side	
-	//std::cout << "\nN: " << clusters.size() << "\n";	
+	//std::cout << "\n----\n";
+	//std::cout << "\nN: " << clusters.size();	
 	//for(int i = 0; i < clusters.size(); i++) {
 	//	std::cout << "\nn: " <<  clusters.at(i).hits()->size() << "  ";
 	//	for(int j = 0; j < clusters.at(i).hits()->size(); j++)
@@ -215,9 +222,9 @@ bool iRPCClusterizer::clustering(float thrTime, iRPCHitContainer &hits, iRPCClus
 	
 }
 
-iRPCClusterContainer iRPCClusterizer::association(iRPCInfo &info, iRPCClusterContainer hr, iRPCClusterContainer lr) 
+iRPCClusterContainer iRPCClusterizer::association(bool isAND, float thrDeltaMin,  float thrDeltaMax,
+                                                  iRPCClusterContainer hr, iRPCClusterContainer lr) 
 {
-	float thrDeltaMin = info.thrDeltaTimeMin(); float thrDeltaMax = info.thrDeltaTimeMax(); bool isAND = info.isAND(); 
 	iRPCClusterContainer clusters;
 	// Sort clusters by number of hits from lowest to highest.
 	std::sort(hr.begin(), hr.end(),
@@ -256,14 +263,16 @@ iRPCClusterContainer iRPCClusterizer::association(iRPCInfo &info, iRPCClusterCon
 		sizeHR = hr.size(); sizeLR = lr.size();
 		h = 0; l = 0;
 		while (h < sizeHR && l < sizeLR) {
-      overlap = 0;
-      for(unsigned int ih = 0; ih < hr.at(h).hits()->size(); ih++) {
-				for(unsigned int il = 0; il < lr.at(l).hits()->size(); il++) {
-					if(hr.at(h).hits()->at(ih).strip() == lr.at(l).hits()->at(il).strip()) {
-						overlap = overlap + 1; break;
-					}
-				}
-			}
+      overlap = 0; delta = hr.at(h).highTime() - lr.at(l).lowTime();
+      if(delta >= thrDeltaMin && delta <= thrDeltaMax) {
+        for(unsigned int ih = 0; ih < hr.at(h).hits()->size(); ih++) {
+			  	for(unsigned int il = 0; il < lr.at(l).hits()->size(); il++) {
+			  		if(hr.at(h).hits()->at(ih).strip() == lr.at(l).hits()->at(il).strip()) {
+			  			overlap = overlap + 1; break;
+			  		}
+			  	}
+			  }
+      }
 			// fill info about overlaps
 			if(overlap != 0) {
         auto o = overlaps.find(overlap);
@@ -282,19 +291,10 @@ iRPCClusterContainer iRPCClusterizer::association(iRPCInfo &info, iRPCClusterCon
 				delta = std::abs(hr.at(o->first).highTime() - lr.at(o->second).lowTime());
 				if(minDelta > delta) { minDelta = delta; min = o; }
 			}
-			delta = hr.at(min->first).highTime() - lr.at(min->second).lowTime();
-			if(delta >= thrDeltaMin && delta <= thrDeltaMax) { 
-				clusters.push_back(iRPCCluster()); 
-				clusters.back().compute(hr.at(min->first), lr.at(min->second));
-				hr.erase(hr.begin() + min->first); used = used + 1;
-				lr.erase(lr.begin() + min->second); used = used + 1;
-			}
-			else { // if lower delta isn't inside geometry of RPC -> separate two sides.
-				if(!isAND) clusters.push_back(hr.at(min->first));
-				hr.erase(hr.begin() + min->first); used = used + 1;
-				if(!isAND) clusters.push_back(lr.at(min->second));
-				lr.erase(lr.begin() + min->second); used = used + 1;
-			}
+			clusters.push_back(iRPCCluster()); 
+			clusters.back().initialize(hr.at(min->first), lr.at(min->second));
+			hr.erase(hr.begin() + min->first); used = used + 1;
+			lr.erase(lr.begin() + min->second); used = used + 1;
 		}
 		else {
 			if(!(hr.empty())) { 

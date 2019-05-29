@@ -17,7 +17,9 @@ iRPCHit::~iRPCHit() {}
 int iRPCHit::strip() { return _strip; }
 int iRPCHit::channel() { return _channel; }
 float iRPCHit::time() { return _time; }
+
 void iRPCHit::setHR(bool is) { _isHR = is; };
 void iRPCHit::setLR(bool is) { _isLR = is; };
+
 bool iRPCHit::isHR() { return _isHR; };
 bool iRPCHit::isLR() { return _isLR; };
