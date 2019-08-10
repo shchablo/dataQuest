@@ -121,7 +121,7 @@ public:
   bool clusterBasic(std::vector<std::pair<double, double>> dataHR, std::vector<std::pair<double, double>> dataLR,  
                                 std::map<int, lyCB::data>* output, bool isOR); 
   bool  iCluster(std::vector<std::pair<double, double>> dataHR, std::vector<std::pair<double, double>> dataLR,  
-                                  std::map<int, lyCB::data>* output); 
+                                  std::map<int, lyCB::data>* output, bool isOR); 
   int centralStrip(std::vector<std::pair<double, double>>* strips); 
   double middleTimeCB(std::vector<std::pair<double, double>>* strips); 
   double middleStripCB(std::vector<std::pair<double, double>>* strips); 
@@ -202,6 +202,7 @@ protected:
   // data for basicClustering
   bool _isMinMaxTime; double _minTime;  double _maxTime; 
 	double _timeThrCB; 
+	double _timeThrHR; double _timeThrLR; double _timeThrA; 
   int _numEffEventsCB; int _numEffNoiseEventsCB;
   int _goodCluster;  int _badCluster;
   bool _isClusterBasic; bool _isNoiseClusterBasic;
@@ -216,10 +217,12 @@ protected:
   int _thrTrigers;  
   
   bool _isWindow;  
-  double _begWindowHR; double _begWindowHR_def;   
+  double _begWindowHR; double _begWindowHR_def; 
   double _endWindowHR; double _endWindowHR_def; 
+  double _rangeHR;   
   double _begWindowLR; double _begWindowLR_def;  
   double _endWindowLR; double _endWindowLR_def;
+  double _rangeLR;   
   TH1F* _hHR; 
   TH1F* _hLR; 
   bool _isNoise;  

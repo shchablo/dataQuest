@@ -362,18 +362,18 @@ bool LyPetiAnalysis::newWindows()
    double pRMS  = _hHR->GetRMS();
    TF1* g1 = new TF1("g", "gaus",  pMean - 6*pRMS, pMean + 6*pRMS);
    _hHR->Fit("g", "QS");
-   _begWindowHR = g1->GetParameter(1) - 3*g1->GetParameter(2);
-   _endWindowHR = g1->GetParameter(1) + 3*g1->GetParameter(2);
-   //std::cout << " HR:" << std::setprecision(2) << _endWindowHR -_begWindowHR << std::endl;
+   std::cout << " HR:" << std::setprecision(4) << 3*g1->GetParameter(2) << std::endl;
+   _begWindowHR = g1->GetParameter(1) - _rangeHR;
+   _endWindowHR = g1->GetParameter(1) + _rangeHR;
    delete g1;
    
    pMean  = _hLR->GetMean();
    pRMS  = _hLR->GetRMS();
    TF1* g2 = new TF1("g2", "gaus",  pMean - 6*pRMS, pMean + 6*pRMS);
    _hLR->Fit("g2", "QS");
-   _begWindowLR = g2->GetParameter(1) - 3*g2->GetParameter(2);
-   _endWindowLR = g2->GetParameter(1) + 3*g2->GetParameter(2);
-   //std::cout << " LR:" << std::setprecision(2) << _endWindowLR -_begWindowLR << std::endl;
+   std::cout << " LR:" << std::setprecision(4) << 3*g2->GetParameter(2) << std::endl;
+   _begWindowLR = g2->GetParameter(1) - _rangeLR;
+   _endWindowLR = g2->GetParameter(1) + _rangeLR;
    delete g2;
    
    delete _hHR; _hHR = new TH1F(Form("hHR_%d", _hHR), "HR", 300,  1, -1);
@@ -416,6 +416,7 @@ bool LyPetiAnalysis::configure()
   if(isWindow) {
     bool isBegWindow = this->findParam("windowLR&beg", &_begWindowLR_def);  
     bool isEndWindow = this->findParam("windowLR&end", &_endWindowLR_def);
+    bool isWindowRange = this->findParam("windowLR&range", &_rangeLR);
     _begWindowLR = _begWindowLR_def;
     _endWindowLR = _endWindowLR_def;
     if(!isBegWindow || !isEndWindow)
@@ -424,6 +425,7 @@ bool LyPetiAnalysis::configure()
   if(isWindow) {
     bool isBegWindow = this->findParam("windowHR&beg", &_begWindowHR_def);  
     bool isEndWindow = this->findParam("windowHR&end", &_endWindowHR_def);
+    bool isWindowRange = this->findParam("windowHR&range", &_rangeHR);
     _begWindowHR = _begWindowHR_def;
     _endWindowHR = _endWindowHR_def;
     if(!isBegWindow || !isEndWindow)
@@ -477,6 +479,19 @@ bool LyPetiAnalysis::configure()
   bool isTimeThrCB = this->findParam("CB&timeThr", &_timeThrCB);
   if(!isTimeThrCB)
     _timeThrCB = 100;
+  
+  bool isTimeThrHR = this->findParam("CB&timeThrHR", &_timeThrHR);
+  if(!isTimeThrHR)
+    _timeThrHR = 100;
+  
+  bool isTimeThrLR = this->findParam("CB&timeThrLR", &_timeThrLR);
+  if(!isTimeThrLR)
+    _timeThrLR = 100;
+  
+  bool isTimeThrA = this->findParam("CB&timeThrA", &_timeThrA);
+  if(!isTimeThrA)
+    _timeThrA = 100;
+
   double dataCB = 0;
   bool isDataCB = this->findParam("dataCB&HR(1)&LR(2)&OR(3)&AND(4)&HRLR(5)", &dataCB);
   if(isDataCB)
@@ -754,7 +769,7 @@ bool LyPetiAnalysis::stripsEfficiency(std::string mod)
       for(unsigned int j = 0; j < noiseLR.size(); j++) {
         if(noiseHR.at(i).first == noiseLR.at(j).first) {
           isNoiseAND = true;
-          noiseLR.erase(noiseLR.begin()+j);
+          //noiseLR.erase(noiseLR.begin()+j);
           break;
 				}
       }
@@ -772,7 +787,7 @@ bool LyPetiAnalysis::stripsEfficiency(std::string mod)
       for(unsigned int j = 0; j < LR.size(); j++) {
         if(HR.at(i).first == LR.at(j).first) {
           isAND = true;
-          LR.erase(LR.begin()+j);
+          //LR.erase(LR.begin()+j);
           break;
 				}
       }
@@ -1182,36 +1197,33 @@ bool LyPetiAnalysis::filterXtalk(std::vector<std::pair<int, int>>* iHR,
   if(isTrue) {
     _badCluster+=1;
   }
-  if((sizeHR > 0 && iHR->size() == 0) || (sizeLR > 0 && iLR->size() == 0)) {
-    _isSkipEvent = true;
-  }
-  //if(iHR->size() > 5 || iHR->size() > 5) {
+  //if((sizeHR > 0 && iHR->size() == 0) || (sizeLR > 0 && iLR->size() == 0)) {
   //  _isSkipEvent = true;
   //}
-  if(isTrue) {
-    bool isAND = true; 
-    //std::cout << "\n ######### \n";
-    for(unsigned int ih = 0; ih < iHR->size(); ih++) {
-      numStripHR = _strips->at(iHR->at(ih).first).number; 
-      //std::cout << numStripHR << ": ";
-      for(unsigned int il = 0; il < iLR->size(); il++) {
-        numStripLR = _strips->at(iLR->at(il).first).number;
-        //std::cout << numStripLR << " ";
-        if(numStripHR == numStripLR) {
-          isAND = false;
-          break;
-        }
-      }
-      //std::cout << "\n";
-    }
-    if(isAND) _isSkipEvent = true;
-  }
-	for(unsigned int h = 0; h < _HRf.size(); h++) {
-		for(unsigned int l = 0; l < _LRf.size(); l++) {
-			if(_HRf.at(h).first = _LRf.at(l).first)
-				_ANDf.push_back(std::make_pair(_HRf.at(h).first, _HRf.at(h).second -_LRf.at(l).second));				
-		}
-	}
+  //if(isTrue) {
+  //  bool isAND = true; 
+  //  //std::cout << "\n ######### \n";
+  //  for(unsigned int ih = 0; ih < iHR->size(); ih++) {
+  //    numStripHR = _strips->at(iHR->at(ih).first).number; 
+  //    //std::cout << numStripHR << ": ";
+  //    for(unsigned int il = 0; il < iLR->size(); il++) {
+  //      numStripLR = _strips->at(iLR->at(il).first).number;
+  //      //std::cout << numStripLR << " ";
+  //      if(numStripHR == numStripLR) {
+  //        isAND = false;
+  //        break;
+  //      }
+  //    }
+  //    //std::cout << "\n";
+  //  }
+  //  if(isAND) _isSkipEvent = true;
+  //}
+	//for(unsigned int h = 0; h < _HRf.size(); h++) {
+	//	for(unsigned int l = 0; l < _LRf.size(); l++) {
+	//		if(_HRf.at(h).first = _LRf.at(l).first)
+	//			_ANDf.push_back(std::make_pair(_HRf.at(h).first, _HRf.at(h).second -_LRf.at(l).second));				
+	//	}
+	//}
   //  std::cout << std::setprecision(5) << "iLR=" << sizeLR << " ";
   //  std::cout << std::setprecision(5) << "iHR=" << sizeHR << ": ";
   //  std::cout << std::setprecision(5) << "iLR=" << iLR->size() << " ";
@@ -1349,7 +1361,7 @@ bool LyPetiAnalysis::choiceDataClusterBasic(std::string param)
       else if(_dataCB == 5) 
         this->clusterBasic(_HR, _LR, &_CB, false);
       else if(_dataCB == 6) 
-        this->iCluster(_HR, _LR, &_CB);
+        this->iCluster(_HR, _LR, &_CB, true);
       _isClusterBasic = true;
       result = true;
     }
@@ -1366,6 +1378,8 @@ bool LyPetiAnalysis::choiceDataClusterBasic(std::string param)
         this->clusterBasic(_noiseOR, &_noiseCB);
       else if(_dataCB == 5)
         this->clusterBasic(_noiseHR, _noiseLR, &_noiseCB, true);
+      else if(_dataCB == 6) 
+        this->iCluster(_noiseHR, _noiseLR, &_noiseCB, true);
       _isNoiseClusterBasic = true;
       result = true;
     }
@@ -1373,14 +1387,28 @@ bool LyPetiAnalysis::choiceDataClusterBasic(std::string param)
   return result;
 }
 bool LyPetiAnalysis::iCluster(std::vector<std::pair<double, double>> dataHR, std::vector<std::pair<double, double>> dataLR,  
-                                  std::map<int, lyCB::data>* output) 
+                                  std::map<int, lyCB::data>* output, bool isOR) 
 {
+
+  std::vector<int> deadCHsLR = {};
+  this->recoveryCHs(deadCHsLR, &dataHR, &dataLR);
+  std::vector<int> deadCHsHR = {12};
+  this->recoveryCHs(deadCHsHR, &dataLR, &dataHR);
+  
   iRPCClusterContainer clusters;
   iRPCClusterizer clusterizer;
   iRPCInfo info;
+  info.setThrTimeHR(_timeThrHR); info.setThrTimeLR(_timeThrLR);
+  info.setThrDeltaTimeMin(-100); info.setThrDeltaTimeMax(100);
+  //std::cout << _timeThrHR << " " << _timeThrLR; 
+  info.isAND(true);
   clusters = clusterizer.doAction(dataHR, dataLR, info);
 	for(int i = 0; i < clusters.size(); i++) {
     lyCB::data cluster;
+	  for(int j = 0; j < clusters.at(i).hits()->size(); j++) {
+     if(clusters.at(i).hits()->at(j).isHR()) cluster.HR.push_back(std::pair<int, double>(clusters.at(i).hits()->at(j).channel(), clusters.at(i).hits()->at(j).time()));
+     if(clusters.at(i).hits()->at(j).isLR())  cluster.LR.push_back(std::pair<int, double>(clusters.at(i).hits()->at(j).channel(), clusters.at(i).hits()->at(j).time()));
+    }
     cluster.middleStrip = clusters.at(i).x();    
     cluster.middleTime = clusters.at(i).deltaTime();
     cluster.size =  clusters.at(i).clusterSize();

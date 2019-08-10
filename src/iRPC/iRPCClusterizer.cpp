@@ -11,8 +11,8 @@
 #include <map>
 #include <thread>
 
-// #include <iostream> // tests
-// #include <iomanip> // tests
+ #include <iostream> // tests
+ #include <iomanip> // tests
 
 iRPCClusterizer::iRPCClusterizer() {} 
 iRPCClusterizer::~iRPCClusterizer() {}
@@ -72,9 +72,6 @@ iRPCClusterContainer iRPCClusterizer::doAction(std::vector<std::pair<double, dou
 															                 std::vector<std::pair<double, double>> dataLR,
                                                iRPCInfo info)
 {
-  info.setThrTimeHR(10); info.setThrTimeLR(10);
-  info.setThrDeltaTimeMin(-30); info.setThrDeltaTimeMax(30);
-  info.isAND(true);
   iRPCHitContainer hlr, hhr;
 	// fill data order to map (for dataQuest).
 	for(unsigned int ih = 0; ih < dataHR.size(); ih++) {
@@ -166,7 +163,7 @@ bool iRPCClusterizer::clustering(float thrTime, iRPCHitContainer &hits, iRPCClus
 				if(minDelta > delta) {
 					minDelta = delta; minI = i; minNI = ni;
 				}
-  		  if(front->second.at(i).time() <= next->second.at(ni).time()) ++i; else ++ni;
+  		  if(front->second.at(i).time() < next->second.at(ni).time()) ++i; else ++ni;
 			}
 			// if minDelta below thresholt (param) fill two first hits in cluster
 			if(minDelta < thrTime) {
@@ -234,21 +231,21 @@ iRPCClusterContainer iRPCClusterizer::association(bool isAND, float thrDeltaMin,
 			 [] (iRPCCluster & c1, iRPCCluster & c2) -> bool 
 					{ return c1.hits()->size() < c2.hits()->size(); });
 	
-  //// Print data (test)	
-	//std::cout << "\nHR: " << hr.size();	
-	//for(int i = 0; i < hr.size(); i++) {
-	//	std::cout << "\nn: " <<  hr.at(i).hits()->size() << "  ";
-	//	for(int j = 0; j < hr.at(i).hits()->size(); j++)
-	//		std::cout << std::setprecision(4) << hr.at(i).hits()->at(j).channel() << "|" << hr.at(i).hits()->at(j).time() << " ";
-	//}
-	//std::cout << "\n-----\n";
-	//std::cout << "\nLR: " << lr.size();	
-	//for(int i = 0; i < lr.size(); i++) {
-	//	std::cout << "\nn: " <<  lr.at(i).hits()->size() << "  ";
-	//	for(int j = 0; j < lr.at(i).hits()->size(); j++)
-	//		std::cout << std::setprecision(4) << lr.at(i).hits()->at(j).channel() << "|" << lr.at(i).hits()->at(j).time() << " ";
-	//}
-	//std::cout << "\n-----\n";
+ //// Print data (test)	
+ //std::cout << "\nHR: " << hr.size();	
+ //for(int i = 0; i < hr.size(); i++) {
+ //	std::cout << "\nn: " <<  hr.at(i).hits()->size() << "  ";
+ //	for(int j = 0; j < hr.at(i).hits()->size(); j++)
+ //		std::cout << std::setprecision(4) << hr.at(i).hits()->at(j).channel() << "|" << hr.at(i).hits()->at(j).time() << " ";
+ //}
+ //std::cout << "\n-----\n";
+ //std::cout << "\nLR: " << lr.size();	
+ //for(int i = 0; i < lr.size(); i++) {
+ //	std::cout << "\nn: " <<  lr.at(i).hits()->size() << "  ";
+ //	for(int j = 0; j < lr.at(i).hits()->size(); j++)
+ //		std::cout << std::setprecision(4) << lr.at(i).hits()->at(j).channel() << "|" << lr.at(i).hits()->at(j).time() << " ";
+ //}
+ //std::cout << "\n-----\n";
 
 	// associate couples
 	float minDelta = std::numeric_limits<float>::max();
@@ -281,7 +278,7 @@ iRPCClusterContainer iRPCClusterizer::association(bool isAND, float thrDeltaMin,
 			  									(overlap, std::vector<std::pair<unsigned int, unsigned int>>()));
 			  overlaps.find(overlap)->second.push_back(std::make_pair(h, l));
       }
-			if(hr.at(h).hits()->size() <= lr.at(l).hits()->size()) ++h; else ++l;
+			if(hr.at(h).hits()->size() < lr.at(l).hits()->size()) ++h; else ++l;
 		}
 		// looking couple with lower time delta
 		if(!overlaps.empty()) {
@@ -308,7 +305,7 @@ iRPCClusterContainer iRPCClusterizer::association(bool isAND, float thrDeltaMin,
 		}
 	}
 	
-  //// Print data (test)	
+  ////// Print data (test)	
   //std::cout << "\nCouple: " << clusters.size();	
 	//for(int i = 0; i < clusters.size(); i++) {
 	//	std::cout << "\n\nfirst: " << clusters.at(i).firstStrip() << " last: " << clusters.at(i).lastStrip() << " size: " << clusters.at(i).clusterSize() <<  " time: " << std::setprecision(4) << clusters.at(i).deltaTime();
