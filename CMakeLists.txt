@@ -3,17 +3,29 @@
 # Shchablo Konstantin (Shchablo@gmail.com)
 ################################################################################
 
-cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.4 FATAL_ERROR)
 
-project(dq)
+project(dq LANGUAGES CXX)
 
 # MODULE -----------------------------------------------------------------------
   list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/modules)
+  
   ## CERN_ROOT
-    list( APPEND CMAKE_MODULE_PATH $ENV{ROOTSYS}/etc/cmake/)
-    find_package(ROOT REQUIRED)
-    include_directories(${ROOT_INCLUDE_DIR})
+  list(APPEND CMAKE_MODULE_PATH $ENV{ROOTSYS}/etc/cmake/)
+  find_package(ROOT REQUIRED COMPONENTS RIO Net)
+  include("${CMAKE_CURRENT_SOURCE_DIR}/modules/RootNewMacros.cmake")  
+  include_directories(${ROOT_USE_FILE})
+  include_directories(${ROOT_INCLUDE_DIR})
+  ROOT_GENERATE_DICTIONARY(G__RoPetiEvent
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/RoPetiEvent/RoPetiEvent.h LINKDEF
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/RoPetiEvent/RoPetiEventLinkDef.h) 
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libs)
+  add_library(RoPetiEvent SHARED
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/RoPetiEvent/RoPetiEvent.cxx
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/RoPetiEvent/RoPetiEvent.h
+    G__RoPetiEvent)
   ##
+  
   ## ZLIB
     find_package(ZLIB REQUIRED)
     include_directories(${ZLIB_IBCLUDE_DIRS})
@@ -24,6 +36,8 @@ project(dq)
   include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
   ## dq 
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+    ### RoPetiEvent
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/RoPetiEvent)
     ### InOutData
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/InOutData)
     ###
@@ -50,6 +64,8 @@ file(GLOB MAIN_SRC "*.cpp")
   ## dq 
   file(GLOB DQ_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
     ### inData
+    file(GLOB RO_PETI_EVENT_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/RoPetiEvent/*.cxx")
+    ### inData
     file(GLOB IN_OUT_DATA_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/InOutData/*.cpp")
     ###
     ### DqROOT
@@ -68,8 +84,10 @@ file(GLOB MAIN_SRC "*.cpp")
     file(GLOB FEATURES_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/Features/*.cpp")
     ###
   ##
-  set(CPPS ${MAIN_SRC} ${DQ_SRC} ${IN_OUT_DATA_SRC} ${DQ_ROOT_SRC} 
+  set(CPPS ${MAIN_SRC} ${RO_PETI_EVENT_SRC} ${DQ_SRC} ${IN_OUT_DATA_SRC} ${DQ_ROOT_SRC} 
     ${WEE2UI_SRC} ${LYPETI_SRC} ${IRPC_SRC} ${FEATURES_SRC})
+
+
 #-------------------------------------------------------------------------------
 
 # COMPILER SETTING -------------------------------------------------------------
@@ -93,11 +111,18 @@ else()
     endif()
   endif()
 endif()
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_PLATFORM_INDEPENDENT_CODE ON)
 
 add_definitions(-Wall -O3)
 
+#Link to ROOT.
+
 add_executable(${PROJECT_NAME} ${CPPS})
+target_link_libraries(${PROJECT_NAME} RoPetiEvent ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
 # LIBRARIES --------------------------------------------------------------------
-target_link_libraries(${PROJECT_NAME} ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
+file(GLOB PCM_FILES "${PROJECT_BINARY_DIR}/*.pcm")
+file(COPY ${PCM_FILES} DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 #-------------------------------------------------------------------------------
 ################################################################################

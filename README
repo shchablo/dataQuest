@@ -35,14 +35,15 @@ example:
   mkdir build
   cd build
   cmake .. or sudo cmake ..
-  make or sudo make
+  make or sudo make (twice)
   cd ../bin
   ./dq --type=...
 --------------------------------------------------------------------------------
 
 #CARDS:
 
-https://drive.google.com/drive/folders/1cU_BFJwJ8RcBuimU3EbEckgHIJ8fm51x?usp=sharing
+Ask Shchablo@gmail.com
+
 --------------------------------------------------------------------------------
 
 #SUPPORT:

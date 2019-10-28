@@ -1,5 +1,5 @@
 /*!
-\file 
+\file
 \brief Body file with definitions of iRPCHit functions.
 \authors Shchablo Konstantin (shchablo@gmail.com)
 \version 1.0
@@ -9,11 +9,14 @@
 */
 #include "iRPCHit.hpp"
 
-iRPCHit::iRPCHit() {_channel = -1; _strip = -1; _time = -1; _isHR = false; _isLR = false;}
-iRPCHit::iRPCHit(int channel, int strip, float time) : 
-                 _channel(channel), _strip(strip), _time(time) {_isHR = false; _isLR = false;}
+iRPCHit::iRPCHit() { _channel = -1; _strip = -1; _time = -1; _isHR = false; _isLR = false; }
+iRPCHit::iRPCHit(int channel, int strip, float time) :
+                 _channel(channel), _strip(strip), _time(time) { _isHR = false; _isLR = false; }
+iRPCHit::iRPCHit(int channel, int strip, float time, int bunchx) :
+                 _channel(channel), _strip(strip), _time(time), _bunchx(bunchx) { _isHR = false; _isLR = false; }
 iRPCHit::~iRPCHit() {}
 
+int iRPCHit::bx() { return _bunchx; }
 int iRPCHit::strip() { return _strip; }
 int iRPCHit::channel() { return _channel; }
 float iRPCHit::time() { return _time; }

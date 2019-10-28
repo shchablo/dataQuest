@@ -100,6 +100,29 @@ bool DqRoot::writeDqToCanvasCMS(std::string path, DqTGE* object, bool isCanvas)
   delete c1;
 	return true;
 }
+bool DqRoot::writeDqToCanvasCMS(std::string path, DqTGAE* object, bool isCanvas)
+{
+	TCanvas *c1 = new TCanvas(Form("c_%s", object->GetName()), Form("%s", object->GetName()));
+	object->GetXaxis()->SetTitle(object->getTitleX().c_str());
+	object->GetYaxis()->SetTitle(object->getTitleY().c_str());
+  object->SetMarkerColor(1);
+  object->SetMarkerSize(0.5);
+  object->SetMarkerStyle(20);
+  object->Draw();
+  TString tsPath(path.c_str());
+  const char* cDirName = tsPath.Data();
+  if(isCanvas) {
+	  c1->SetCanvasSize(700, 600);
+	  c1->SetWindowSize(700, 600);
+	  c1->SetGrid();
+    TString c1Path((path + "/CMS/").c_str());
+    const char* c1DirName = c1Path.Data();
+	  this->writeObject(c1DirName, c1);
+  }
+	this->writeObject(cDirName, object);
+  delete c1;
+	return true;
+}
 bool DqRoot::writeDqToCanvasCMS(std::string path, DqTG2D* object, bool isCanvas)
 {
 	TCanvas *c1 = new TCanvas(Form("c_%s", object->GetName()), Form("%s", object->GetName()));
@@ -255,6 +278,15 @@ std::map<std::string, DqTGE*>::iterator DqRoot::addDqTGE(std::string name, std::
     if(it == dqTGEs->end()) {
       dqTGEs->insert(std::make_pair(name, new DqTGE{Form("gr_%s", name.c_str()), Form("%s", title.c_str())}));
       it = dqTGEs->find(name.c_str());
+    }
+    return it;
+}
+std::map<std::string, DqTGAE*>::iterator DqRoot::addDqTGAE(std::string name, std::string title, std::map<std::string, DqTGAE*>* dqTGAEs)
+{
+    auto it = dqTGAEs->find(name.c_str());
+    if(it == dqTGAEs->end()) {
+      dqTGAEs->insert(std::make_pair(name, new DqTGAE{Form("gr_%s", name.c_str()), Form("%s", title.c_str())}));
+      it = dqTGAEs->find(name.c_str());
     }
     return it;
 }

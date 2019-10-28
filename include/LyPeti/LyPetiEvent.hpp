@@ -11,6 +11,7 @@
 #include "zmBuffer.hpp"
 
 namespace lyBuf {
+
 struct header
 {
 	int number;
@@ -45,7 +46,9 @@ struct strip
   std::vector<payload*> HR;
   std::vector<payload*> LR;
   std::vector<payload*> trigs;
-  std::vector<payload*> counter;
+  
+  double deadHR;
+  double deadLR;
   
   double timeOffSet;
   double timeOffSetHR;
@@ -77,7 +80,8 @@ public:
                std::vector<double> HR, std::vector<double> timeOffSetHR,  
                std::vector<double> LR, std::vector<double> timeOffSetLR,
                std::vector<double> timeOffSet,
-               std::vector<double> counter,
+               std::vector<double> deadHR,
+               std::vector<double> deadLR,
                std::vector<double> chamberNum);
 
   lyBuf::header* header(int index);

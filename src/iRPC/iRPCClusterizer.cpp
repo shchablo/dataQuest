@@ -91,8 +91,15 @@ iRPCClusterContainer iRPCClusterizer::doAction(std::vector<std::pair<double, dou
   thr.join(); tlr.join();
 	hlr.clear(); hhr.clear();
 
+	// Compute clusters parameters HR.
+	for(auto cl = chr.begin(); cl != chr.end(); ++cl)
+		cl->compute(std::ref(info));
+	// Compute clusters parameters LR.
+	for(auto cl = clr.begin(); cl != clr.end(); ++cl)
+		cl->compute(std::ref(info));
+
 	// Association between HR and LR.
-	iRPCClusterContainer clusters = association(info.isAND(), info.thrDeltaTimeMin(), info.thrDeltaTimeMax(), chr, clr);
+	iRPCClusterContainer clusters = association(info, chr, clr);
   chr.clear(); clr.clear();
   
   // Compute clusters parameters.
@@ -219,101 +226,125 @@ bool iRPCClusterizer::clustering(float thrTime, iRPCHitContainer &hits, iRPCClus
 	
 }
 
-iRPCClusterContainer iRPCClusterizer::association(bool isAND, float thrDeltaMin,  float thrDeltaMax,
-                                                  iRPCClusterContainer hr, iRPCClusterContainer lr) 
+iRPCClusterContainer iRPCClusterizer::association(iRPCInfo &info, iRPCClusterContainer hr, iRPCClusterContainer lr)
 {
-	iRPCClusterContainer clusters;
-	// Sort clusters by number of hits from lowest to highest.
-	std::sort(hr.begin(), hr.end(),
-			 [] (iRPCCluster & c1, iRPCCluster & c2) -> bool 
-					{ return c1.hits()->size() < c2.hits()->size(); });
-	std::sort(lr.begin(), lr.end(),
-			 [] (iRPCCluster & c1, iRPCCluster & c2) -> bool 
-					{ return c1.hits()->size() < c2.hits()->size(); });
-	
- //// Print data (test)	
- //std::cout << "\nHR: " << hr.size();	
- //for(int i = 0; i < hr.size(); i++) {
- //	std::cout << "\nn: " <<  hr.at(i).hits()->size() << "  ";
- //	for(int j = 0; j < hr.at(i).hits()->size(); j++)
- //		std::cout << std::setprecision(4) << hr.at(i).hits()->at(j).channel() << "|" << hr.at(i).hits()->at(j).time() << " ";
- //}
- //std::cout << "\n-----\n";
- //std::cout << "\nLR: " << lr.size();	
- //for(int i = 0; i < lr.size(); i++) {
- //	std::cout << "\nn: " <<  lr.at(i).hits()->size() << "  ";
- //	for(int j = 0; j < lr.at(i).hits()->size(); j++)
- //		std::cout << std::setprecision(4) << lr.at(i).hits()->at(j).channel() << "|" << lr.at(i).hits()->at(j).time() << " ";
- //}
- //std::cout << "\n-----\n";
+    // ---
+    bool isAND = info.isReturnOnlyAND();
+    float thrDeltaMin = info.thrDeltaTimeMin();
+    float thrDeltaMax = info.thrDeltaTimeMax();
+    float thrDeltaY = info.thrDeltaTimeY();
+    // ---
+    iRPCClusterContainer clusters;
 
-	// associate couples
-	float minDelta = std::numeric_limits<float>::max();
-  float delta = std::numeric_limits<float>::max();
-	unsigned int used = 0; unsigned int nClusters = hr.size() + lr.size(); 
-  unsigned int overlap = 0;
-  std::map<unsigned int, std::vector<std::pair<unsigned int, unsigned int>>> overlaps; // map<overlap, vector<pair<h,l>>>
-	unsigned int sizeHR = hr.size(); unsigned int sizeLR = lr.size();
-	unsigned int h = 0, l = 0;
-	while(used != nClusters) {
-		overlap = 0; overlaps.clear();
-		sizeHR = hr.size(); sizeLR = lr.size();
-		h = 0; l = 0;
-		while (h < sizeHR && l < sizeLR) {
-      overlap = 0; delta = hr.at(h).highTime() - lr.at(l).lowTime();
-      if(delta >= thrDeltaMin && delta <= thrDeltaMax) {
-        for(unsigned int ih = 0; ih < hr.at(h).hits()->size(); ih++) {
-			  	for(unsigned int il = 0; il < lr.at(l).hits()->size(); il++) {
-			  		if(hr.at(h).hits()->at(ih).strip() == lr.at(l).hits()->at(il).strip()) {
-			  			overlap = overlap + 1; break;
-			  		}
-			  	}
-			  }
-      }
-			// fill info about overlaps
-			if(overlap != 0) {
-        auto o = overlaps.find(overlap);
-  		  if(o == overlaps.end()) 
-			  	overlaps.insert(std::pair<unsigned int, std::vector<std::pair<unsigned int, unsigned int>>>
-			  									(overlap, std::vector<std::pair<unsigned int, unsigned int>>()));
-			  overlaps.find(overlap)->second.push_back(std::make_pair(h, l));
-      }
-			if(hr.at(h).hits()->size() < lr.at(l).hits()->size()) ++h; else ++l;
-		}
-		// looking couple with lower time delta
-		if(!overlaps.empty()) {
-			minDelta = std::numeric_limits<float>::max(); delta = std::numeric_limits<float>::max();
-			auto min = std::prev(overlaps.end())->second.begin();
-			for(auto o = std::prev(overlaps.end())->second.begin(); o != std::prev(overlaps.end())->second.end(); ++o) {
-				delta = std::abs(hr.at(o->first).highTime() - lr.at(o->second).lowTime());
-				if(minDelta > delta) { minDelta = delta; min = o; }
-			}
-			clusters.push_back(iRPCCluster()); 
-			clusters.back().initialize(hr.at(min->first), lr.at(min->second));
-			hr.erase(hr.begin() + min->first); used = used + 1;
-			lr.erase(lr.begin() + min->second); used = used + 1;
-		}
-		else {
-			if(!(hr.empty())) { 
-				if(!isAND) clusters.push_back(hr.front());
-				hr.erase(hr.begin()); used = used + 1; 
-			}
-			if(!(lr.empty())) {
-				if(!isAND) clusters.push_back(lr.front());
-				lr.erase(lr.begin()); used = used + 1; 
-			}
-		}
-	}
-	
-  ////// Print data (test)	
-  //std::cout << "\nCouple: " << clusters.size();	
-	//for(int i = 0; i < clusters.size(); i++) {
-	//	std::cout << "\n\nfirst: " << clusters.at(i).firstStrip() << " last: " << clusters.at(i).lastStrip() << " size: " << clusters.at(i).clusterSize() <<  " time: " << std::setprecision(4) << clusters.at(i).deltaTime();
-	//	std::cout << "\nn: " <<  clusters.at(i).hits()->size() << "  ";
-	//	for(int j = 0; j < clusters.at(i).hits()->size(); j++)
-	//		std::cout << std::setprecision(4) << clusters.at(i).hits()->at(j).channel() << "|" << clusters.at(i).hits()->at(j).time() << " " << clusters.at(i).hits()->at(j).isHR() << "; ";
-	//}
-	//std::cout << "\n------------------------------------------------------\n";
-	
-  return clusters;
+    // Sort clusters by number of hits from lowest to highest.
+    std::sort(hr.begin(), hr.end(),
+             [] (iRPCCluster & c1, iRPCCluster & c2) -> bool
+                    { return c1.hits()->size() < c2.hits()->size(); });
+    std::sort(lr.begin(), lr.end(),
+             [] (iRPCCluster & c1, iRPCCluster & c2) -> bool
+                    { return c1.hits()->size() < c2.hits()->size(); });
+
+    //// Print data (test)
+    //std::cout << "\nHR: " << hr.size();
+    //for(unsigned int i = 0; i < hr.size(); i++) {
+    //    std::cout << "\nn: " <<  hr.at(i).hits()->size() << "  ";
+    //    for(unsigned int j = 0; j < hr.at(i).hits()->size(); j++)
+    //        std::cout << std::setprecision(4) << hr.at(i).hits()->at(j).channel() << "|" << hr.at(i).hits()->at(j).time() << " ";
+    //}
+    //std::cout << "\n-----\n";
+    //std::cout << "\nLR: " << lr.size();
+    //for(unsigned int i = 0; i < lr.size(); i++) {
+    //    std::cout << "\nn: " <<  lr.at(i).hits()->size() << "  ";
+    //    for(unsigned int j = 0; j < lr.at(i).hits()->size(); j++)
+    //        std::cout << std::setprecision(4) << lr.at(i).hits()->at(j).channel() << "|" << lr.at(i).hits()->at(j).time() << " ";
+    //}
+    //std::cout << "\n-----\n";
+
+    // associate couples
+    float minDelta = std::numeric_limits<float>::max();
+    float delta = std::numeric_limits<float>::max();
+    unsigned int used = 0; unsigned int nClusters = hr.size() + lr.size();
+    unsigned int overlap = 0; std::map<unsigned int, std::vector<std::pair<unsigned int, unsigned int>>> overlaps; // map<overlap, vector<pair<h,l>>>
+    double deltaTime = 0; std::vector<std::pair<int, double>> deltaTimes; // vector<<strip, deltaTime>>
+    bool isSplitHR = false; bool isSplitLR = false;
+    unsigned int sizeHR = hr.size(); unsigned int sizeLR = lr.size();
+    unsigned int h = 0, l = 0;
+    while(used != nClusters) {
+        overlap = 0; overlaps.clear(); deltaTimes.clear();
+        sizeHR = hr.size(); sizeLR = lr.size();
+        h = 0; l = 0;
+        while(h < sizeHR && l < sizeLR) {
+            overlap = 0; delta = hr.at(h).highTime() - lr.at(l).lowTime();
+            if(delta >= thrDeltaMin && delta <= thrDeltaMax) {
+                for(unsigned int ih = 0; ih < hr.at(h).hits()->size(); ih++) {
+                    for(unsigned int il = 0; il < lr.at(l).hits()->size(); il++) {
+                        if(hr.at(h).hits()->at(ih).strip() == lr.at(l).hits()->at(il).strip()) { overlap = overlap + 1; break; }
+                    }
+                }
+            }
+            // fill info about overlaps
+            if(overlap != 0) {
+                auto o = overlaps.find(overlap);
+                if(o == overlaps.end())
+                    overlaps.insert(std::pair<unsigned int, std::vector<std::pair<unsigned int, unsigned int>>>
+                        (overlap, std::vector<std::pair<unsigned int, unsigned int>>()));
+                overlaps.find(overlap)->second.push_back(std::make_pair(h, l));
+            }
+            if(hr.at(h).hits()->size() < lr.at(l).hits()->size()) ++h; else ++l;
+        }
+        // looking couple with lower time delta
+        if(!overlaps.empty()) {
+            minDelta = std::numeric_limits<float>::max(); delta = std::numeric_limits<float>::max();
+            auto min = std::prev(overlaps.end())->second.begin();
+            for(auto o = std::prev(overlaps.end())->second.begin(); o != std::prev(overlaps.end())->second.end(); ++o) {
+                delta = abs(hr.at(o->first).highTime() - lr.at(o->second).lowTime());
+                if(minDelta > delta) { minDelta = delta; min = o; }
+            }
+            // split cluster by Y resolution (if it need)
+            for(unsigned int ih = 0; ih < hr.at(min->first).hits()->size(); ih++)
+                for(unsigned int il = 0; il < lr.at(min->second).hits()->size(); il++) 
+                    if(hr.at(min->first).hits()->at(ih).strip() == lr.at(min->second).hits()->at(il).strip())  
+                        deltaTimes.push_back(std::make_pair(hr.at(min->first).hits()->at(ih).strip(), hr.at(min->first).hits()->at(ih).time() - lr.at(min->second).hits()->at(il).time()));
+            isSplitHR = false; isSplitLR = false;
+            if(deltaTimes.size() > 0) deltaTime = deltaTimes.at(0).second; 
+            for(unsigned int idT = 0; idT < deltaTimes.size(); idT++) {
+                if(std::abs(deltaTime - deltaTimes.at(idT).second) > thrDeltaY) {  
+                    iRPCCluster cHR; isSplitHR = hr.at(min->first).split(&cHR, deltaTimes.at(idT).first);
+                    if(isSplitHR) {
+                        hr.at(min->first).compute(info);
+                        hr.push_back(cHR); hr.back().compute(info); nClusters += 1;
+                        std::sort(hr.begin(), hr.end(),
+                                    [] (iRPCCluster & c1, iRPCCluster & c2) -> bool
+                                    { return c1.hits()->size() < c2.hits()->size(); });
+                    }
+                    iRPCCluster cLR; isSplitLR = lr.at(min->second).split(&cLR, deltaTimes.at(idT).first);
+                    if(isSplitLR) {
+                        lr.at(min->second).compute(info);
+                        lr.push_back(cLR); lr.back().compute(info); nClusters += 1;
+                        std::sort(lr.begin(), lr.end(),
+                                    [] (iRPCCluster & c1, iRPCCluster & c2) -> bool
+                                    { return c1.hits()->size() < c2.hits()->size(); });
+                    }
+                    break;
+                }        
+            }
+            if(!isSplitHR && !isSplitLR) {
+              clusters.push_back(iRPCCluster());
+              clusters.back().initialize(hr.at(min->first), lr.at(min->second));
+              hr.erase(hr.begin() + min->first); used = used + 1;
+              lr.erase(lr.begin() + min->second); used = used + 1;
+            }
+        }
+        else {
+            if(!(hr.empty())) {
+                if(!isAND) clusters.push_back(hr.front());
+                hr.erase(hr.begin()); used = used + 1;
+            }
+            if(!(lr.empty())) {
+                if(!isAND) clusters.push_back(lr.front());
+                lr.erase(lr.begin()); used = used + 1;
+            }
+        }
+    }
+    return clusters;
 }

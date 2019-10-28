@@ -87,15 +87,13 @@ public:
   bool stripsMultiplicity(int* mult, std::string mod); 
   bool clusterBasicMultiplicity(int* mult, std::string mod);
   bool clusterSize(std::vector<int>* sizes, std::string mod);
-  bool eventFraction(double* fraction, std::string mod);
+  
   bool minTime(double* time, std::string mod); 
   bool maxTime(double* time, std::string mod); 
-  bool filterXtalk(std::vector<std::pair<int, int>>* iHR,
-                   std::vector<std::pair<int, int>>* iLR); 
   
+  bool filter(std::vector<std::pair<int, int>>* iHR,
+                   std::vector<std::pair<int, int>>* iLR); 
   //----------------------------------------------------------------------------
-
-  bool isOffSet(std::string mod);
   bool algos(std::string mod);
   //----------------------------------------------------------------------------
   bool stripsAlgos();
@@ -104,11 +102,13 @@ public:
                                 std::vector<std::pair<double, double>>* donor, 
                                 std::vector<std::pair<double, double>>* recipient); 
   bool dataFillHR(std::vector<std::pair<int, int>>* iHR, 
-                                std::vector<std::pair<double, double>>* output); 
+                                std::vector<std::pair<double, double>>* output, 
+                                std::vector<int>* deadCHsHR); 
   bool dataFillLR(std::vector<std::pair<int, int>>* iLR,
-             std::vector<std::pair<double, double>>* output);
-  bool dataFillAndOr(std::vector<std::pair<int, int>>* iHR,
-                                   std::vector<std::pair<int, int>>* iLR,
+                                std::vector<std::pair<double, double>>* output,
+                                std::vector<int>* deadCHsLR); 
+  bool dataFillAndOr(std::vector<std::pair<double, double>> HR,
+                     std::vector<std::pair<double, double>> LR,
                                    std::vector<std::pair<double, double>>* notHR, 
                                    std::vector<std::pair<double, double>>* notLR, 
                                    std::vector<std::pair<double, double>>* OR, 
@@ -117,23 +117,13 @@ public:
   bool clusterBasicAlgos();
   
   bool choiceDataClusterBasic(std::string param); 
-  bool clusterBasic(std::vector<std::pair<double, double>> data, std::map<int, lyCB::data>* output); 
-  bool clusterBasic(std::vector<std::pair<double, double>> dataHR, std::vector<std::pair<double, double>> dataLR,  
-                                std::map<int, lyCB::data>* output, bool isOR); 
   bool  iCluster(std::vector<std::pair<double, double>> dataHR, std::vector<std::pair<double, double>> dataLR,  
                                   std::map<int, lyCB::data>* output, bool isOR); 
-  int centralStrip(std::vector<std::pair<double, double>>* strips); 
-  double middleTimeCB(std::vector<std::pair<double, double>>* strips); 
-  double middleStripCB(std::vector<std::pair<double, double>>* strips); 
-  double firstTimeCB(std::vector<std::pair<double, double>>* strips); 
-  double firstStripCB(std::vector<std::pair<double, double>>* strips); 
-  double centralStripCB(std::vector<std::pair<double, double>>* strips); 
-  std::vector<double> clustersTimesCB(std::vector<std::pair<double, double>>* strips); 
-  double centralTimeCB(std::vector<std::pair<double, double>>* strips); 
   //----------------------------------------------------------------------------
   
   bool fillEvents(std::string radius, unsigned int js, unsigned int jr); 
-	bool fillTrigers(int numBoards); 
+  bool fillTrigers(unsigned int numBoards); 
+	bool fillTrigers(std::vector<double> trigers); 
   
   bool filters(std::string radius, unsigned int js, unsigned int jr); 
   bool triger(unsigned int js);
@@ -163,7 +153,7 @@ protected:
   DqParser* _parser; // helpful class 
   std::vector<lyBuf::strip>* _strips; // data  
   
-  int _numBoards;   
+  unsigned int _numBoards;   
   std::map<std::string, double> _params; // params for analysis   
   std::map<int, double> _runs; // values for correspond run number (HV, Current, etc.)
   
@@ -184,11 +174,8 @@ protected:
   
   std::vector<std::pair<double, std::pair<double, double>>> _pairAND;
   
-  int _numNoiseHitsHR; 
-  int _numNoiseHitsLR; 
-  int _numNoiseHitsOR; 
-  int _numNoiseHitsAND; 
-  int _numNoiseHitsCB;
+  int _numNoiseHitsHR; int _numNoiseHitsLR;  int _numNoiseHitsOR; 
+  int _numNoiseHitsAND; int _numNoiseHitsCB;
   
   int _numEffTrigers;
   int _numSkipedTrigers;
@@ -202,36 +189,30 @@ protected:
   // data for basicClustering
   bool _isMinMaxTime; double _minTime;  double _maxTime; 
 	double _timeThrCB; 
-	double _timeThrHR; double _timeThrLR; double _timeThrA; 
+	double _timeThrHR; double _timeThrLR; double _timeThrA;
+  double _thrDeltaMin; double _thrDeltaMax; bool _isOR;
   int _numEffEventsCB; int _numEffNoiseEventsCB;
-  int _goodCluster;  int _badCluster;
   bool _isClusterBasic; bool _isNoiseClusterBasic;
   int _dataCB;
   std::map<int, lyCB::data> _CB; std::map<int, lyCB::data> _noiseCB; 
     
   // data for filters
-  bool _isAll;  
+  bool _isAll; bool _isFoundTriger; bool _isTrigers; int _thrTrigers;  
   
-  bool _isFoundTriger;  
-  bool _isTrigers;  
-  int _thrTrigers;  
-  
-  bool _isWindow;  
+  double _preTrigTime;
+  int _LRfilter; int _HRfilter;
+
+  TH1F* _hHR; TH1F* _hLR; 
+  bool _isWindow; double _rangeHR; double _rangeLR;   
   double _begWindowHR; double _begWindowHR_def; 
   double _endWindowHR; double _endWindowHR_def; 
-  double _rangeHR;   
   double _begWindowLR; double _begWindowLR_def;  
   double _endWindowLR; double _endWindowLR_def;
-  double _rangeLR;   
-  TH1F* _hHR; 
-  TH1F* _hLR; 
-  bool _isNoise;  
-  double _begNoise;  
-  double _endNoise;  
   
-  bool _isBCID;  
-  double _begBCID;  
-  double _endBCID;  
+  
+  bool _isNoise; double _begNoise; double _endNoise; double _randShift;  
+  
+  bool _isBCID; double _begBCID; double _endBCID;  
 
   bool _isDeadTime;  
   double _deadTime;  

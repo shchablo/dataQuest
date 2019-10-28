@@ -120,7 +120,7 @@ int main(int argc, char* argv[]) {
         std::cout << "#LOG FILE: " << pathLogFile << std::endl;
         bool isLogFile = configure.logToFile(logData, pathLogFile);
         if (!isLogFile) {
-          std::cout << "#ERROR: Can write log file!" << std::endl;
+          std::cout << "#ERROR: Can't write log file!" << std::endl;
           std::cout << logData;
         }
       }

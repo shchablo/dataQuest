@@ -1,19 +1,19 @@
-#include "DqTGE.hpp"
+#include "DqTGAE.hpp"
 #include <algorithm>
 
-DqTGE::~DqTGE()
+DqTGAE::~DqTGAE()
 {
 }
 
-std::string DqTGE::getTitleX()
+std::string DqTGAE::getTitleX()
 {
   return _titleXstr;
 }
-std::string DqTGE::getTitleY()
+std::string DqTGAE::getTitleY()
 {
   return _titleYstr;
 }
-bool DqTGE::config(std::string name, std::map<std::string, std::string>* params)
+bool DqTGAE::config(std::string name, std::map<std::string, std::string>* params)
 {
   if(!_isConfig) {
     DqParser parser;
@@ -37,22 +37,26 @@ bool DqTGE::config(std::string name, std::map<std::string, std::string>* params)
 
 }
 
-bool DqTGE::setting(double x, double ex, double y, double ey)
+bool DqTGAE::setting(double x, double exl, double exh, double y, double eyl, double eyh)
 {
   _x.push_back(x);
-  _ex.push_back(ex);
+  _exl.push_back(exl);
+  _exh.push_back(exh);
   _y.push_back(y);
-  _ey.push_back(ey);
+  _eyl.push_back(eyl);
+  _eyh.push_back(eyh);
   return true;
 }
 
-bool DqTGE::sortByX()
+bool DqTGAE::sortByX()
 {
   std::vector<int> sizes;
   sizes.push_back(_x.size()); 
-  sizes.push_back(_ex.size()); 
+  sizes.push_back(_exl.size()); 
+  sizes.push_back(_exh.size()); 
   sizes.push_back(_y.size()); 
-  sizes.push_back(_ey.size()); 
+  sizes.push_back(_eyl.size()); 
+  sizes.push_back(_eyh.size()); 
   if(!(count(sizes.begin(), sizes.end(), sizes[0]) == (int)sizes.size()) ||  sizes[0] == 0)
     return false;
 	double tmp = 0;
@@ -63,39 +67,47 @@ bool DqTGE::sortByX()
       	_x[j + 1] = _x[j]; 
       	_x[j] = tmp;
       	
-				tmp = _ex[j + 1]; 
-      	_ex[j + 1] = _ex[j]; 
-      	_ex[j] = tmp;
+				tmp = _exl[j + 1]; 
+      	_exl[j + 1] = _exl[j]; 
+      	_exl[j] = tmp;
+				tmp = _exh[j + 1]; 
+      	_exh[j + 1] = _exh[j]; 
+      	_exh[j] = tmp;
 				
 				tmp = _y[j + 1]; 
       	_y[j + 1] = _y[j]; 
       	_y[j] = tmp;
 				
-				tmp = _ey[j + 1]; 
-      	_ey[j + 1] = _ey[j]; 
-      	_ey[j] = tmp;
+				tmp = _eyl[j + 1]; 
+      	_eyl[j + 1] = _eyl[j]; 
+      	_eyl[j] = tmp;
+				tmp = _eyh[j + 1]; 
+      	_eyh[j + 1] = _eyh[j]; 
+      	_eyh[j] = tmp;
 			}
 		}
 	}	
 	return true;
 }
-bool DqTGE::plot()
+bool DqTGAE::plot()
 {
   std::vector<int> sizes;
   sizes.push_back(_x.size()); 
-  sizes.push_back(_ex.size()); 
+  sizes.push_back(_exl.size()); 
+  sizes.push_back(_exh.size()); 
   sizes.push_back(_y.size()); 
-  sizes.push_back(_ey.size()); 
+  sizes.push_back(_eyl.size()); 
+  sizes.push_back(_eyh.size()); 
   if(!(count(sizes.begin(), sizes.end(), sizes[0]) == (int)sizes.size()) || sizes[0] == 0)
     return false;
   for(unsigned int i = 0; i < _x.size(); i++) {		
     this->SetPoint(i,_x.at(i), _y.at(i));
-    this->SetPointError(i, _ex.at(i), _ey.at(i));
+    this->SetPointError(i, _exl.at(i), _exh.at(i), _eyl.at(i), _eyh.at(i));
   }
   return true;
 }
 
-bool DqTGE::print(std::string mod)
+bool DqTGAE::print(std::string mod)
 {
   if(mod == "sigmoid") {
 	  for(unsigned int i = 0; i < _x.size(); i++)		
@@ -110,7 +122,7 @@ bool DqTGE::print(std::string mod)
   }
   return true;
 }
-bool DqTGE::print(std::vector<std::string> *lines)
+bool DqTGAE::print(std::vector<std::string> *lines)
 {
 	  for(unsigned int i = 0; i < _y.size(); i++) {
       std::string line = std::to_string(_y.at(i)); 

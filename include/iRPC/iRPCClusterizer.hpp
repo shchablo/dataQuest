@@ -58,8 +58,7 @@ class iRPCClusterizer {
 			\param[in] lr - Container of clusters correspond low radius of the chamber.
 			\return Container of clusters.
 		*/
-    iRPCClusterContainer association(bool isAND, float thrDeltaMin,  float thrDeltaMax,
-                                     iRPCClusterContainer hr, iRPCClusterContainer lr); 
+    iRPCClusterContainer association(iRPCInfo &info, iRPCClusterContainer hr, iRPCClusterContainer lr);
 		
     /* CMSSW */
  		/*!
