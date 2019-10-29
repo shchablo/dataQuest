@@ -134,7 +134,6 @@ std::string LyPetiAnalysis::filtersStr()
 }
 std::string LyPetiAnalysis::modParamsStr(std::string mod) 
 {
-
   std::string params = "";
   if(_parser->last(mod) == "CB") {
     std::stringstream ss;
@@ -177,7 +176,7 @@ std::vector<std::pair<double, double>> LyPetiAnalysis::data(std::string mod)
   std::string param = _parser->first(mod);
   std::vector<std::pair<double, double>> data;
   if(name == "HR" || name == "LR" || 
-     name == "AND" || name == "OR"  || name == "fLR" || name == "fHR" || name == "fAND")
+     name == "AND" || name == "OR" || name == "fLR" || name == "fHR" || name == "fAND")
     this->stripsData(&data, mod);
   if(name == "CB")
     this->clusterBasicData(&data, mod);
@@ -373,7 +372,8 @@ bool LyPetiAnalysis::newWindows()
    pMean  = _hLR->GetMean();
    pRMS  = _hLR->GetRMS();
    TF1* g2 = new TF1("g2", "gaus",  pMean - 6*pRMS, pMean + 6*pRMS);
-   // _hLR->Fit("g2", "QS"); std::cout << " LR:" << std::setprecision(4) << 3*g2->GetParameter(2) << std::endl;
+   _hLR->Fit("g2", "QS"); 
+   // std::cout << " LR:" << std::setprecision(4) << 3*g2->GetParameter(2) << std::endl;
    _begWindowLR = g2->GetParameter(1) - _rangeLR/2;
    _endWindowLR = g2->GetParameter(1) + _rangeLR/2;
    delete g2;
@@ -509,8 +509,8 @@ bool LyPetiAnalysis::configure()
   if(!isTimeThrA)
     _timeThrA = 100;
 
-  double dataCB = 0;
-  bool isDataCB = this->findParam("dataCB", &dataCB);
+  double dataCB = 1;
+  bool isDataCB = this->findParam("CB&iC", &dataCB);
   if(isDataCB)
     _dataCB = (int)dataCB;
   else 
@@ -1205,7 +1205,6 @@ bool LyPetiAnalysis::choiceDataClusterBasic(std::string param)
 bool LyPetiAnalysis::iCluster(std::vector<std::pair<double, double>> dataHR, std::vector<std::pair<double, double>> dataLR,  
                                   std::map<int, lyCB::data>* output, bool isOR) 
 {
-
   iRPCClusterContainer clusters;
   iRPCClusterizer clusterizer;
   iRPCInfo info;
