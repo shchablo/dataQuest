@@ -64,6 +64,8 @@ public:
   bool skipEvent(bool is); 
   bool skipEvent(); 
   
+  bool setDeadCHsHR(std::vector<int> dead);
+  bool setDeadCHsLR(std::vector<int> dead);
   bool configure();
   
   bool clear(std::string type);
@@ -102,11 +104,9 @@ public:
                                 std::vector<std::pair<double, double>>* donor, 
                                 std::vector<std::pair<double, double>>* recipient); 
   bool dataFillHR(std::vector<std::pair<int, int>>* iHR, 
-                                std::vector<std::pair<double, double>>* output, 
-                                std::vector<int>* deadCHsHR); 
+                                std::vector<std::pair<double, double>>* output); 
   bool dataFillLR(std::vector<std::pair<int, int>>* iLR,
-                                std::vector<std::pair<double, double>>* output,
-                                std::vector<int>* deadCHsLR); 
+                                std::vector<std::pair<double, double>>* output); 
   bool dataFillAndOr(std::vector<std::pair<double, double>> HR,
                      std::vector<std::pair<double, double>> LR,
                                    std::vector<std::pair<double, double>>* notHR, 
@@ -155,6 +155,7 @@ protected:
   
   unsigned int _numBoards;   
   std::map<std::string, double> _params; // params for analysis   
+  std::vector<int> _deadCHsHR; std::vector<int> _deadCHsLR;   
   std::map<int, double> _runs; // values for correspond run number (HV, Current, etc.)
   
   // indexes for filtered data for one event - should be clear with function clear each event

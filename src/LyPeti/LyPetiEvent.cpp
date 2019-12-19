@@ -329,6 +329,42 @@ bool LyPetiEvent::setTimeOffSetLR(std::map<int, double>* offsets)
   }
     return true; 
 }
+
+std::map<int, double> LyPetiEvent::getTimeOffSetHR() 
+{
+  std::map<int, double> result;
+  for(auto& it: _map)
+      result.insert(std::make_pair(it.first, it.second.at(3)));
+    return result; 
+}
+
+std::map<int, double> LyPetiEvent::getTimeOffSetLR() 
+{
+  std::map<int, double> result;
+  for(auto& it: _map)
+      result.insert(std::make_pair(it.first, it.second.at(5)));
+    return result; 
+}
+
+std::vector<int> LyPetiEvent::getDeadCHsHR() 
+{
+  std::vector<int> result;
+  for(auto& it: _map) {
+    if(it.second.at(8) == 1)
+      result.push_back(it.first);
+  }
+    return result; 
+}
+std::vector<int> LyPetiEvent::getDeadCHsLR() 
+{
+  std::vector<int> result;
+  for(auto& it: _map) {
+    if(it.second.at(9) == 1)
+      result.push_back(it.first);
+  }
+    return result; 
+}
+
 std::vector<int>* LyPetiEvent::chambers() 
 {
   return &_chambers; 

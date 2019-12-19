@@ -27,7 +27,6 @@ LyPeti::LyPeti(std::string mod, std::map<std::string, std::string> params,
   std::string defaultPath = _parser.filePath(_outputs.at(0));
   _rootFilePath = defaultPath + plusOutDir + "/" + outName;
 
-
 }
 LyPeti::~LyPeti() {}
 
@@ -481,6 +480,8 @@ bool LyPeti::initAnalys(std::map<int, LyPetiAnalysis> *analysis,
       analysis->insert(std::make_pair(chamber, LyPetiAnalysis{}));
 
     analysis->find(chamber)->second.setParser(&_parser);
+    analysis->find(chamber)->second.setDeadCHsHR(event->getDeadCHsHR());
+    analysis->find(chamber)->second.setDeadCHsLR(event->getDeadCHsLR());
     
     // take values for runs 
     std::vector<double> values; 
@@ -555,7 +556,7 @@ bool LyPeti::offset(std::string mod, std::vector<std::string> *mods,
       //---
       for(unsigned int jt = 0; jt < event->trigs(chamber)->size(); jt++) {
         //std::cout << event->trigs(chamber)->at(jt)->head->boardID << std::endl;
-        if(event->trigs(chamber)->at(jt)->head->numOfCh > buffer && event->trigs(chamber)->at(jt)->head->boardID == 15) analysis->find(chamber)->second.skipEvent(true);
+        //if(event->trigs(chamber)->at(jt)->head->numOfCh > buffer && event->trigs(chamber)->at(jt)->head->boardID == 15) analysis->find(chamber)->second.skipEvent(true);
       }
       //--- 
       unsigned int numberOfTrigers = event->trigs(chamber)->size(); // #
@@ -655,7 +656,7 @@ bool LyPeti::offset(std::string mod, std::vector<std::string> *mods,
               TF1 *f1 = new TF1("f1", "gaus", mean-nRMS*rms, mean+nRMS*rms);
               TH1s->find(nameTH1s.c_str())->second.Fit("f1", "R");
               offSet = f1->GetParameter(1)-refTime; 
-              if(offSet > 15) offSet = 0;
+              if(std::abs(offSet) > 10) offSet = 0;
               errOffSet = f1->GetParError(1)+errRefTime; 
               TGEs->find(nameTGEs.c_str())->second->setting(c + chamber, 0, offSet, errOffSet);
               if(mods->at(im) == "HR") { 
@@ -672,6 +673,9 @@ bool LyPeti::offset(std::string mod, std::vector<std::string> *mods,
     event->setTimeOffSetHR(&offsetsHR); 
     event->setTimeOffSetLR(&offsetsLR);
 
+    std::map<int, double> printHR; std::map<int, double> printLR;
+    printHR = event->getTimeOffSetHR(); 
+    printLR = event->getTimeOffSetLR();
     double print = 0;
     bool isPrint = this->findParam("offsetFit&print", &strValue, &_params);
 		if(isPrint)  _parser.strToDouble(&print, strValue);
@@ -682,18 +686,18 @@ bool LyPeti::offset(std::string mod, std::vector<std::string> *mods,
         int strips = event->numberOfStrips(chamber);
         std::cout << "\n" << "chamber: " << chamber << "; HR\n";
         for(int i = 0; i < strips; i++) {
-          auto itStrip = offsetsHR.find(i+chamber);
-            if(!(itStrip == offsetsHR.end())) {
-              std::cout << std::setprecision(5) << offsetsHR.find(i+chamber)->second << delim;
+          auto itStrip = printHR.find(i+chamber);
+            if(!(itStrip == printHR.end())) {
+              std::cout << std::setprecision(5) << printHR.find(i+chamber)->second << delim;
             }
             else
               std::cout << 0 << delim;
         }
         std::cout << "\n" << "chamber: " << chamber << "; LR\n";
         for(int i = 0; i < strips; i++) {
-          auto itStrip = offsetsLR.find(i+chamber);
-            if(!(itStrip == offsetsLR.end())) {
-              std::cout << std::setprecision(5) << offsetsLR.find(i+chamber)->second << delim;
+          auto itStrip = printLR.find(i+chamber);
+            if(!(itStrip == printLR.end())) {
+              std::cout << std::setprecision(5) <<  printLR.find(i+chamber)->second << delim;
             }
             else
               std::cout << 0 << delim;
@@ -734,7 +738,7 @@ bool LyPeti::core(std::string mod, std::vector<std::string> *mods,
         
         trigers.push_back(event->trigs(chamber)->at(jt)->time);
        
-        int boardID = event->trigs(chamber)->at(jt)->head->boardID; 
+        int boardID = event->trigs(chamber)->at(jt)->head->boardID;
         if(isA) {
           int gtc = event->trigs(chamber)->at(jt)->head->gtc; 
           int ch = event->trigs(chamber)->at(jt)->ch; 
@@ -757,7 +761,6 @@ bool LyPeti::core(std::string mod, std::vector<std::string> *mods,
         if(!isA) itTH1s->second.setting(BCID);
         if(isA) { itTH1s = TH1s->find(nameTH1s); if(!(itTH1s == TH1s->end())) 
           TH1s->find(nameTH1s.c_str())->second.Fill(BCID); }
-        
         //---
       }
       unsigned int numberOfTrigers = event->trigs(chamber)->size(); // #
@@ -767,7 +770,6 @@ bool LyPeti::core(std::string mod, std::vector<std::string> *mods,
       if(isA) { itTH1s = TH1s->find(nameTH1s); if(!(itTH1s == TH1s->end()))
         TH1s->find(nameTH1s.c_str())->second.Fill(numberOfTrigers); }
       //--- 
-      
       
       bool isTrigers = analysis->find(chamber)->second.fillTrigers(trigers);
       for(unsigned int js = 0; js < event->strips(chamber)->size(); js++) {
@@ -800,7 +802,7 @@ bool LyPeti::core(std::string mod, std::vector<std::string> *mods,
             bool isFilterNoiseHR = analysis->find(chamber)->second.filters("noise_HR", js, jh); 
             if(isFilterNoiseHR) 
               analysis->find(chamber)->second.fillEvents("noise_HR", js, jh); 
-            analysis->find(chamber)->second.filters("deadTime_HR", js, jh); // skip if deadTime 
+            //analysis->find(chamber)->second.filters("deadTime_HR", js, jh); // skip if deadTime 
           }
         }
       	// LR
@@ -832,7 +834,7 @@ bool LyPeti::core(std::string mod, std::vector<std::string> *mods,
             bool isFilterNoiseLR = analysis->find(chamber)->second.filters("noise_LR", js, jl); 
             if(isFilterNoiseLR) 
               analysis->find(chamber)->second.fillEvents("noise_LR", js, jl); 
-            analysis->find(chamber)->second.filters("deadTime_LR", js, jl); // skip if deadTime 
+            //analysis->find(chamber)->second.filters("deadTime_LR", js, jl); // skip if deadTime 
           }
         }
     	}
@@ -927,8 +929,18 @@ bool LyPeti::core(std::string mod, std::vector<std::string> *mods,
               if(isA) { itTH1s = TH1s->find(nameTH1s); if(!(itTH1s == TH1s->end())) 
                 TH1s->find(nameTH1s.c_str())->second.Fill(clusterSize.at(i)); }
             }
-            clusterSize.clear();
           }
+          if(isMult) {
+            nameTH2s = Form("%d%s%sclusterSizeMutltiplicity", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
+            titleTH2s = Form("%d%s%s", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
+            itTH2s = dataRoot->addDqTH2D(nameTH2s, titleTH2s, TH2s); itTH2s->second.config(nameTH2s, &_params);
+            for( unsigned int i = 0; i < clusterSize.size(); i++) {
+              if(!isA) itTH2s->second.setting(mult, clusterSize.at(i));
+              if(isA) { itTH2s = TH2s->find(nameTH2s); if(!(itTH2s == TH2s->end())) 
+                TH2s->find(nameTH2s.c_str())->second.Fill(mult, clusterSize.at(i)); }
+            }
+          }
+          clusterSize.clear();
     		  if(isA) { // fill eff plot
             bool isEff = analysis->find(chamber)->second.efficiency(mods->at(im).c_str()); // count events
             if(isEff) {

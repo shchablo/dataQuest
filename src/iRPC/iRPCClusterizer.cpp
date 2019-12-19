@@ -100,7 +100,7 @@ iRPCClusterContainer iRPCClusterizer::doAction(std::vector<std::pair<double, dou
 
 	// Association between HR and LR.
 	iRPCClusterContainer clusters = association(info, chr, clr);
-  chr.clear(); clr.clear();
+  //chr.clear(); clr.clear();
   
   // Compute clusters parameters.
 	for(auto cl = clusters.begin(); cl != clusters.end(); ++cl)

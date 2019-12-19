@@ -364,18 +364,18 @@ bool LyPetiAnalysis::newWindows()
    double pRMS  = _hHR->GetRMS();
    TF1* g1 = new TF1("g", "gaus",  pMean - 6*pRMS, pMean + 6*pRMS);
    _hHR->Fit("g", "QS"); 
-   // std::cout << " HR:" << std::setprecision(4) << 3*g1->GetParameter(2) << std::endl;
-   _begWindowHR = g1->GetParameter(1) - _rangeHR/2;
-   _endWindowHR = g1->GetParameter(1) + _rangeHR/2;
+   //std::cout << " HR:" << std::setprecision(4) << 3*g1->GetParameter(2) << std::endl;
+   _begWindowHR = g1->GetParameter(1) - _rangeHR;
+   _endWindowHR = g1->GetParameter(1) + _rangeHR;
    delete g1;
    
    pMean  = _hLR->GetMean();
    pRMS  = _hLR->GetRMS();
    TF1* g2 = new TF1("g2", "gaus",  pMean - 6*pRMS, pMean + 6*pRMS);
    _hLR->Fit("g2", "QS"); 
-   // std::cout << " LR:" << std::setprecision(4) << 3*g2->GetParameter(2) << std::endl;
-   _begWindowLR = g2->GetParameter(1) - _rangeLR/2;
-   _endWindowLR = g2->GetParameter(1) + _rangeLR/2;
+   //std::cout << " LR:" << std::setprecision(4) << 3*g2->GetParameter(2) << std::endl;
+   _begWindowLR = g2->GetParameter(1) - _rangeLR;
+   _endWindowLR = g2->GetParameter(1) + _rangeLR;
    delete g2;
    
    delete _hHR; _hHR = new TH1F(Form("hHR_%li", (long int)_hHR), "HR", 300,  1, -1);
@@ -387,6 +387,16 @@ bool LyPetiAnalysis::newWindows()
 }
 //------------------------------------------------------------------------------
 
+bool LyPetiAnalysis::setDeadCHsHR(std::vector<int> dead)
+{
+    _deadCHsHR = dead;
+    return true;
+}
+bool LyPetiAnalysis::setDeadCHsLR(std::vector<int> dead)
+{
+    _deadCHsLR = dead;
+    return true;
+}
 bool LyPetiAnalysis::configure()
 {
   std::stringstream ss;
@@ -708,7 +718,7 @@ bool LyPetiAnalysis::efficiency(double* eff, double* eEff, std::string mod)
     *eff = (efficiency - effNoise)/(1-effNoise);
     *eEff = eEfficiency + eEffNoise;
   }
-   // std::cout << std::setprecision(5) << name << " " << events << " " << trigers << " " << *eff << " " << *eEff << std::endl; 
+  //std::cout << std::setprecision(5) << name << " " << events << " " << trigers << " " << *eff << " " << *eEff << std::endl; 
   if(trigers < 0 || events < 0) { *eff = 0; *eEff = 0; }
   //----
   return true;
@@ -1056,17 +1066,17 @@ bool LyPetiAnalysis::recoveryCHs(std::vector<int> deadCHs,
       }
     }
     if(isDead) {
-      bool isTransplantation = false;
+      //bool isTransplantation = false;
       for(unsigned int j = 0; j < recipient->size(); j++) {
         if(recipient->at(j).first + 1 == donor->at(i).first || recipient->at(j).first -1 == donor->at(i).first) {
           recipient->push_back(std::pair<double, double>(donor->at(i).first, recipient->at(j).second));
-          isTransplantation = true;
+          //isTransplantation = true;
           break;
         }
       }
-      if(!isTransplantation) {
-          recipient->push_back(std::pair<double, double>(donor->at(i).first, 0));
-      }
+      //if(!isTransplantation) {
+      //    recipient->push_back(std::pair<double, double>(donor->at(i).first, 0));
+      //}
     }
   }
   return true;
@@ -1077,16 +1087,14 @@ bool LyPetiAnalysis::choiceDataFill(std::string param)
   bool result = false;
   if(!_isStripsFill) {
     if(param == "data") {
+      
       this->filter(&_iHR, &_iLR); 
       
-      std::vector<int> deadCHsLR = {};
-      std::vector<int> deadCHsHR = {};
-      
-      this->dataFillHR(&_iHR, &_HR, &deadCHsHR);
-      this->dataFillLR(&_iLR, &_LR, &deadCHsLR);
+      this->dataFillHR(&_iHR, &_HR);
+      this->dataFillLR(&_iLR, &_LR);
 
-      this->recoveryCHs(deadCHsLR, &_HR, &_LR);
-      this->recoveryCHs(deadCHsHR, &_LR, &_HR);
+      this->recoveryCHs(_deadCHsLR, &_HR, &_LR);
+      this->recoveryCHs(_deadCHsHR, &_LR, &_HR);
       
       this->dataFillAndOr(_HR, _LR, &_notHR, &_notLR, &_OR, &_AND);
       _isStripsFill = true; result = true;
@@ -1094,13 +1102,9 @@ bool LyPetiAnalysis::choiceDataFill(std::string param)
   }
   if(!_isNoiseFill) {
     if(param == "noise") {
-      this->filter(&_iNoiseHR, &_iNoiseLR); 
       
-      std::vector<int> deadCHsLR = {};
-      std::vector<int> deadCHsHR = {};
-      
-      this->dataFillHR(&_iNoiseHR, &_noiseHR, &deadCHsHR);
-      this->dataFillLR(&_iNoiseLR, &_noiseLR, &deadCHsLR);
+      this->dataFillHR(&_iNoiseHR, &_noiseHR);
+      this->dataFillLR(&_iNoiseLR, &_noiseLR);
 
       std::vector<std::pair<double, double>> notHR; std::vector<std::pair<double, double>> notLR; 
       this->dataFillAndOr(_noiseHR, _noiseLR, &notHR, &notLR, &_noiseOR, &_noiseAND);
@@ -1111,8 +1115,7 @@ bool LyPetiAnalysis::choiceDataFill(std::string param)
   return result;
 }
 bool LyPetiAnalysis::dataFillHR(std::vector<std::pair<int, int>>* iHR, 
-                                std::vector<std::pair<double, double>>* output,
-                                std::vector<int>* deadCHsHR) 
+                                std::vector<std::pair<double, double>>* output) 
 {
   double numStrip = 0; double trigTime = 0; double hitTime = 0; 
   for(unsigned int ih = 0; ih < iHR->size(); ih++) {
@@ -1120,7 +1123,6 @@ bool LyPetiAnalysis::dataFillHR(std::vector<std::pair<int, int>>* iHR,
       hitTime = (double)_strips->at(iHR->at(ih).first).HR.at(iHR->at(ih).second)->time;
       trigTime = (double)_strips->at(iHR->at(ih).first).trigs.at(0)->time;
       
-      if(_strips->at(iHR->at(ih).first).deadHR == 1) deadCHsHR->push_back(numStrip);
       
       double time = hitTime - trigTime;
       if(_isTimeOffsetHR) time = ((time - _strips->at(iHR->at(ih).first).timeOffSetHR));
@@ -1129,16 +1131,14 @@ bool LyPetiAnalysis::dataFillHR(std::vector<std::pair<int, int>>* iHR,
   return true;
 }
 bool LyPetiAnalysis::dataFillLR(std::vector<std::pair<int, int>>* iLR,
-                                std::vector<std::pair<double, double>>* output, 
-                                std::vector<int>* deadCHsLR) 
+                                std::vector<std::pair<double, double>>* output) 
 {
-  double numStrip = 0; double trigTime = 0; double hitTime = 0; 
+  double numStrip = 0; double trigTime = 0; double hitTime = 0;
   for(unsigned int il = 0; il < iLR->size(); il++) {
     numStrip = _strips->at(iLR->at(il).first).number; 
     hitTime = (double)_strips->at(iLR->at(il).first).LR.at(iLR->at(il).second)->time;
     trigTime = (double)_strips->at(iLR->at(il).first).trigs.at(0)->time;
     
-    if(_strips->at(iLR->at(il).first).deadLR == 1) deadCHsLR->push_back(numStrip);
     
     double time = hitTime - trigTime;
     if(_isTimeOffsetLR) time = ((time - _strips->at(iLR->at(il).first).timeOffSetLR)); 

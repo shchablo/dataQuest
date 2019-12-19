@@ -70,6 +70,10 @@ public:
   bool setTimeOffSetHR(std::map<int, double>* offsets); 
   bool setTimeOffSetLR(std::map<int, double>* offsets); 
   bool setTimeOffSet(std::map<int, double>* offsets); 
+  std::map<int, double> getTimeOffSetHR(); 
+  std::map<int, double> getTimeOffSetLR();
+  std::vector<int> getDeadCHsHR(); 
+  std::vector<int> getDeadCHsLR(); 
   /* Functions. */
   bool fill(std::vector<zdaq::buffer*>* buffers);
   bool clear();
@@ -113,6 +117,7 @@ protected:
                               // int[5] - LR time offset;
                               // int[6] - timeOffset;
                               // int[7] - chamber;
-                              // int[8] - counter;
+                              // int[8] - deadHR;
+                              // int[9] - deadLR;
 };
 #endif 
