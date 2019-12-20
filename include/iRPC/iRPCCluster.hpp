@@ -144,6 +144,11 @@ class iRPCCluster
         */
         float xD();
 
+        float firstTime();
+        float firstX();
+
+        float centralTime();
+        float centralX();
         /*!
             \brief Returns a pointer to the hit container.
             \return The container of hits which include in the cluster.
@@ -194,7 +199,17 @@ class iRPCCluster
 
         int _fstrip; // !< The first (order to the map) strip of the cluster which was fired at least from one side.
         int _lstrip; // !< The last (order to the map) strip of the cluster which was fired at least from one side.
+        int _fCstrip; // !< The first (order to the map) strip of the cluster which was fired at least from one side.
+        int _lCstrip; // !< The last (order to the map) strip of the cluster which was fired at least from one side.
+        
+        float _size; // !< The last (order to the map) strip of the cluster which was fired at least from one side.
 
+        float _ftime;
+        float _fX;
+        unsigned int _nCTime; // !< The number of strips which have time information from both ends.
+        float _sumCTime; // !< The sum of all delta times of cluster.
+        float _sumCTime2; // !< The sum of squares of all delta times of cluster.
+        
         unsigned int _nDeltaTime; // !< The number of strips which have time information from both ends.
         float _sumDeltaTime; // !< The sum of all delta times of cluster.
         float _sumDeltaTime2; // !< The sum of squares of all delta times of cluster.

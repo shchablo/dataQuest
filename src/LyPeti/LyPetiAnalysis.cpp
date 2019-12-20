@@ -1223,8 +1223,16 @@ bool LyPetiAnalysis::iCluster(std::vector<std::pair<double, double>> dataHR, std
     }
     cluster.middleStrip = clusters.at(i).x();    
     cluster.middleTime = clusters.at(i).deltaTime();
+    
+    cluster.centralStrip = clusters.at(i).centralX();    
+    cluster.centralTime = clusters.at(i).centralTime();
+    
+    cluster.firstStrip = clusters.at(i).firstX();    
+    cluster.firstTime = clusters.at(i).firstTime();
+    
     cluster.size =  clusters.at(i).clusterSize();
     output->insert(std::make_pair(i, cluster));
+    
 	}
   //// Print data (test)	
   //std::cout << "\nCouple: " << clusters.size();	

@@ -14,6 +14,8 @@
 #include <cmath>
 #include <algorithm>
 #include <limits>
+#include <iostream>
+#include <iomanip>
 
 iRPCCluster::iRPCCluster()
 {
@@ -45,9 +47,15 @@ iRPCCluster::~iRPCCluster() {}
 int iRPCCluster::bx() { return _bunchx; }
 void iRPCCluster::setBx(int bx) { _bunchx = bx; }
 
+float iRPCCluster::firstTime() { return _ftime; }
+float iRPCCluster::firstX() { return _fX; }
+
+float iRPCCluster::centralTime() { return _nCTime > 0 ? _sumCTime/_nCTime : -1; }
+float iRPCCluster::centralX() { return hasX() ? float((_lCstrip + _fCstrip))/2 : -1; }
+
 int iRPCCluster::firstStrip() { return _fstrip; }
 int iRPCCluster::lastStrip() { return _lstrip; }
-int iRPCCluster::clusterSize() { return _lstrip-_fstrip+1; }
+int iRPCCluster::clusterSize() { return _size; }
 
 bool iRPCCluster::hasHighTime() { return _nHighTime > 0; }
 float iRPCCluster::highTime() { return hasHighTime() ? _sumHighTime/_nHighTime : -1; }
@@ -66,7 +74,7 @@ float iRPCCluster::y() { return hasY() ? _sumY/_nY : 0; }
 float iRPCCluster::yRMS() { return hasY() ? std::sqrt(std::max(0.0f, _sumY2*_nY - _sumY*_sumY))/_nY : -1; }
 
 bool iRPCCluster::hasX() { if(_fstrip == -1 || _lstrip == -1) return false; else return true; }
-float iRPCCluster::x() { return hasX() ? (_lstrip + _fstrip)/2 : -1; }
+float iRPCCluster::x() { return hasX() ? float((_lstrip + _fstrip))/2 : -1; }
 float iRPCCluster::xD() { return hasX() ? std::pow((_lstrip-_fstrip),2)/12 : -1; }
 
 iRPCHitContainer* iRPCCluster::hits() { return &_hits; }
@@ -77,6 +85,7 @@ bool iRPCCluster::compute(iRPCInfo &info)
     _nHighTime = 0; _sumHighTime = 0; _sumHighTime2 = 0;
     _nLowTime = 0; _sumLowTime = 0; _sumLowTime2 = 0;
     _nDeltaTime = 0; _sumDeltaTime = 0; _sumDeltaTime2 = 0;
+    _nCTime = 0; _sumCTime = 0; _sumCTime2 = 0;
     if(_hits.size() > 0) _bunchx = _hits.begin()->bx();
     _fstrip =  std::numeric_limits<int>::max();
     _lstrip =  std::numeric_limits<int>::min();
@@ -85,12 +94,13 @@ bool iRPCCluster::compute(iRPCInfo &info)
             _bunchx = std::numeric_limits<int>::min();
             result = false;
         }
-        if(_fstrip > hit->strip()) _fstrip = hit->strip();
+
+        if(_fstrip > hit->strip())  _fstrip = hit->strip();
         if(_lstrip < hit->strip()) _lstrip = hit->strip();
         if(hit->isHR()) { _nHighTime += 1; _sumHighTime += hit->time(); _sumHighTime2 += hit->time()*hit->time(); }
         if(hit->isLR()) { _nLowTime += 1; _sumLowTime += hit->time(); _sumLowTime2 += hit->time()*hit->time(); }
     }
-
+    
     float delta = 0;
     float y = 0; float speed = info.speed();
     for(auto h = _hits.begin(); h != _hits.end(); ++h) {
@@ -103,6 +113,57 @@ bool iRPCCluster::compute(iRPCInfo &info)
                 break;
             }
         }
+    }
+    _size = 0;
+    int firstTime = 0; delta = 0; bool isCouple = false;
+    _fCstrip =  std::numeric_limits<int>::max();
+    _lCstrip =  std::numeric_limits<int>::min();
+    for(auto h = _hits.begin(); h != _hits.end(); ++h) {
+      isCouple = false;
+      for(auto l = _hits.begin(); l != _hits.end(); ++l) {
+        if(h->strip() == l->strip() && h->isHR() && l->isLR()) {
+          if(_fCstrip > h->strip()) _fCstrip = h->strip();
+          if(_lCstrip < h->strip()) _lCstrip = h->strip();
+          isCouple = true;
+        }
+      }
+      if(isCouple && h->isHR())
+        _size += 1;
+      else if (h->isHR()) 
+        _size += 0.5;
+    }
+    for(auto h = _hits.begin(); h != _hits.end(); ++h) {
+      isCouple = false;
+      for(auto l = _hits.begin(); l != _hits.end(); ++l) {
+        if(h->strip() == l->strip() && h->isLR() && l->isHR()) {
+          if(_fCstrip > h->strip()) _fCstrip = h->strip();
+          if(_lCstrip < h->strip()) _lCstrip = h->strip();
+          isCouple = true;
+        }
+      }
+      if(isCouple && h->isLR())
+        _size = _size;
+      else if (h->isLR()) 
+        _size += 0.5;
+    }
+    for(auto h = _hits.begin(); h != _hits.end(); ++h) {
+      for(auto l = _hits.begin(); l != _hits.end(); ++l) {
+        if(h->strip() == l->strip() && h->isHR() && l->isLR()) {
+
+          if(this->centralX() == h->strip() || this->centralX() == float(h->strip() + 0.5) || this->centralX() == float(h->strip()-0.5)) {
+              delta = h->time() - l->time(); 
+              _nCTime += 1; _sumCTime += delta; _sumCTime2 += delta*delta;
+            }
+        }
+        if(std::abs(firstTime) < std::abs(h->time()) && h->isHR()) {
+          if(h->strip() == l->strip() && h->isHR() && l->isLR()) {
+            firstTime = h->time();
+            _ftime = h->time() - l->time(); 
+            _fX = h->strip();
+            break;  
+          }
+        }
+      }
     }
     _isCorrect = result; return result;
 }
