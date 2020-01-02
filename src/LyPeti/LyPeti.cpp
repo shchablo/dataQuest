@@ -647,6 +647,7 @@ bool LyPeti::offset(std::string mod, std::vector<std::string> *mods,
           refTime = f1->GetParameter(1); errRefTime = f1->GetParError(1);
           delete f1;
         }
+        double averSigma = 0; int an = 0;
         for(int c = 0; c < strips; c++) {
           nameTH1s = Form("%d%s%d%s%sTimeProfileOffset", chamber, _strDelim.c_str(), c, _strDelim.c_str(), mods->at(im).c_str()); 
           auto itStrip = TH1s->find(nameTH1s.c_str());
@@ -659,6 +660,10 @@ bool LyPeti::offset(std::string mod, std::vector<std::string> *mods,
               if(std::abs(offSet) > 10) offSet = 0;
               errOffSet = f1->GetParError(1)+errRefTime; 
               TGEs->find(nameTGEs.c_str())->second->setting(c + chamber, 0, offSet, errOffSet);
+              if( _parser.last(mods->at(im)) == "CB") {
+                averSigma += f1->GetParameter(2);
+                an +=1;
+              }
               if(mods->at(im) == "HR") { 
                 offsetsHR.insert(std::make_pair(c+chamber, offSet));
               }
@@ -668,6 +673,7 @@ bool LyPeti::offset(std::string mod, std::vector<std::string> *mods,
             }
           }
         }
+        std::cout << "average sigma cluster: " << std::setprecision(5) << averSigma/an << std::endl; 
       }
     }
     event->setTimeOffSetHR(&offsetsHR); 
