@@ -106,7 +106,9 @@ iRPCClusterContainer iRPCClusterizer::doAction(std::vector<std::pair<double, dou
 	for(auto cl = clusters.begin(); cl != clusters.end(); ++cl)
     cl->compute(std::ref(info));
   
-	return clusters;
+  return clusters;
+	//return chr;
+	//return clr;
 }
 
 bool iRPCClusterizer::clustering(float thrTime, iRPCHitContainer &hits, iRPCClusterContainer &clusters) 

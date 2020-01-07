@@ -1158,14 +1158,14 @@ bool LyPetiAnalysis::dataFillAndOr(std::vector<std::pair<double, double>> HR,
       for(unsigned int j = 0; j < LR.size(); j++) {
         if(HR.at(i).first == LR.at(j).first) {
           for(unsigned int l = 0; l < LR.size(); l++) {
-            if((LR.at(j).first == LR.at(l).first) && (std::abs(LR.at(j).second - HR.at(i).second) > std::abs(LR.at(l).second - HR.at(i).second)))
+            if(j =! l && (LR.at(j).first == LR.at(l).first) && (std::abs(LR.at(j).second - HR.at(i).second) > std::abs(LR.at(l).second - HR.at(i).second)))
               std::swap(LR[j],  LR[l]);
           }
           double time = (HR.at(i).second - LR.at(j).second);
           AND->push_back(std::pair<double, double>(HR.at(i).first, time));
           _pairAND.push_back(std::make_pair(HR.at(i).first, std::make_pair(HR.at(i).second, LR.at(j).second)));
           OR->push_back(std::pair<double, double>(HR.at(i).first, HR.at(i).second));
-          LR.erase(LR.begin()+j); HR.erase(HR.begin()+i);
+          LR.erase(LR.begin()+j); HR.erase(HR.begin()+i); i = i - 1;
           break;
 	  		}
         else if(j == LR.size()-1 && HR.at(i).first != _limit) {
