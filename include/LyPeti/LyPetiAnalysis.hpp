@@ -19,7 +19,7 @@ namespace lyCB {
   struct data
   {
     int size;
-    int centralStrip;
+    double centralStrip;
     double centralTime;
     double time;
     double middleTime;

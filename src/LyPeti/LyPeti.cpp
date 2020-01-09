@@ -648,6 +648,7 @@ bool LyPeti::offset(std::string mod, std::vector<std::string> *mods,
           delete f1;
         }
         double averSigma = 0; int an = 0;
+        
         for(int c = 0; c < strips; c++) {
           nameTH1s = Form("%d%s%d%s%sTimeProfileOffset", chamber, _strDelim.c_str(), c, _strDelim.c_str(), mods->at(im).c_str()); 
           auto itStrip = TH1s->find(nameTH1s.c_str());
@@ -673,7 +674,26 @@ bool LyPeti::offset(std::string mod, std::vector<std::string> *mods,
             }
           }
         }
-        std::cout << "average sigma cluster: " << std::setprecision(5) << averSigma/an << std::endl; 
+        double RMS = 0;
+        for(int c = 0; c < strips; c++) {
+          nameTH1s = Form("%d%s%d%s%sTimeProfileOffset", chamber, _strDelim.c_str(), c, _strDelim.c_str(), mods->at(im).c_str()); 
+          auto itStrip = TH1s->find(nameTH1s.c_str());
+          if(!(itStrip == TH1s->end())) {
+            if(TH1s->find(nameTH1s.c_str())->second.GetEntries() > entries) {
+              double mean = TH1s->find(nameTH1s.c_str())->second.GetMean(); double rms = TH1s->find(nameTH1s.c_str())->second.GetRMS();
+              TF1 *f1 = new TF1("f1", "gaus", mean-nRMS*rms, mean+nRMS*rms);
+              TH1s->find(nameTH1s.c_str())->second.Fit("f1", "R");
+              offSet = f1->GetParameter(1)-refTime; 
+              if(std::abs(offSet) > 10) offSet = 0;
+              errOffSet = f1->GetParError(1)+errRefTime; 
+              TGEs->find(nameTGEs.c_str())->second->setting(c + chamber, 0, offSet, errOffSet);
+              if( _parser.last(mods->at(im)) == "CB") {
+                RMS += (f1->GetParameter(2) - averSigma/an)*(f1->GetParameter(2) - averSigma/an);
+              }
+            }
+          }
+        }
+        std::cout << "average sigma cluster: " << std::setprecision(5) << averSigma/an << " " << std::sqrt(RMS)/an  << std::endl; 
       }
     }
     event->setTimeOffSetHR(&offsetsHR); 
@@ -1085,7 +1105,34 @@ bool LyPeti::core(std::string mod, std::vector<std::string> *mods,
       for(unsigned int im = 0; im < mods->size(); im++) {
         analysis->find(chamber)->second.algos(mods->at(im));
         std::string modParams = analysis->find(chamber)->second.modParamsStr(mods->at(im)); 
-        
+
+        // fit 2DProfile strip by strip 
+				std::string strValue; double entries; double nRMS;
+    		bool isRMS = this->findParam("offsetFit&nRMS", &strValue, &_params);
+				if(isRMS) _parser.strToDouble(&nRMS, strValue);
+    		bool isEntries = this->findParam("offsetFit&entries", &strValue, &_params);
+				if(isEntries) _parser.strToDouble(&entries, strValue);
+        nameTH2s = Form("%d%s%sstripTimeProfile", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
+      	auto it = TH2s->find(nameTH2s);
+      	if(!(it == TH2s->end())) {
+					TH1D * projh2X = it->second.ProjectionX();
+        	int nbinsx = projh2X->GetXaxis()->GetNbins();
+        	for(int bin = 0; bin < nbinsx; bin++) {
+						TH1D * proj = it->second.ProjectionX("h", bin, bin, "");
+          	if(proj->GetEntries() > entries) {
+							double mean = proj->GetMean(); double rms = proj->GetRMS();
+          		TF1 *f1 = new TF1("f1", "gaus", mean-nRMS*rms, mean+nRMS*rms);
+              proj->Fit("f1", "R");
+            	double sigma = f1->GetParameter(2); double errSigma = f1->GetParError(2);
+							nameTGEs = Form("%d%s%ssigmas2D", chamber, _strDelim.c_str(), mods->at(im).c_str());   
+        			itTGEs = dataRoot->addDqTGE(nameTGEs, nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
+        			TGEs->find(nameTGEs.c_str())->second->setting(float(bin)/2, 0, sigma, errSigma);
+							delete f1;
+						}
+        	}
+					delete projh2X;
+      	}
+
         // CLUSTER STUDY
     		nameTH1s = Form("%d%s%sHRcs", chamber, _strDelim.c_str(), mods->at(im).c_str());
         auto itCluster = TH1s->find(nameTH1s);
