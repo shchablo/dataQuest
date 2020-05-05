@@ -62,7 +62,7 @@ class iRPCCluster
             \brief Calculate the cluster size of cluster.
             \return The number of strips which were fired at least from one side.
         */
-        int clusterSize();
+        float clusterSize();
 
         /*!
             \brief Check of the existing information of high time.

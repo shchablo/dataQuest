@@ -81,6 +81,12 @@ public:
                   std::map<std::string, DqTG2D*> *TG2Ds, 
                   std::map<std::string, DqTH1D> *TH1s, 
                   std::map<std::string, DqTH2D> *TH2s);
+  bool rate(std::string mod, std::vector<std::string> *mods, 
+                  int run, LyPetiEvent *event, std::map<int, LyPetiAnalysis> *analysis,
+                  DqRoot *dataRoot,
+                  std::map<std::string, DqTG2D*> *TG2Ds, 
+                  std::map<std::string, DqTH1D> *TH1s, 
+                  std::map<std::string, DqTH1D> *TH2s);
   /* Loop function */ 
   //----------------------------------------------------------------------------
   bool initEvent(LyPetiEvent *event);
@@ -94,6 +100,9 @@ public:
   virtual bool run();
 protected:
 	
+  int _counter;
+  int _check;
+  int _check2;
   std::string _rootFilePath;
   DqParser _parser; std::string _strDelim;  
   std::string  _logRunNumber;  std::string _comment;

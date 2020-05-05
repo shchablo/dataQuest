@@ -55,7 +55,7 @@ float iRPCCluster::centralX() { return hasX() ? float((_lCstrip + _fCstrip))/2 :
 
 int iRPCCluster::firstStrip() { return _fstrip; }
 int iRPCCluster::lastStrip() { return _lstrip; }
-int iRPCCluster::clusterSize() { return _size; }
+float iRPCCluster::clusterSize() { return _size; }
 
 bool iRPCCluster::hasHighTime() { return _nHighTime > 0; }
 float iRPCCluster::highTime() { return hasHighTime() ? _sumHighTime/_nHighTime : -1; }
@@ -66,7 +66,8 @@ float iRPCCluster::lowTime() { return hasLowTime() ? _sumLowTime/_nLowTime : -1;
 float iRPCCluster::lowTimeRMS() { return hasLowTime() ? std::sqrt(std::max(0.0f, _sumLowTime2*_nLowTime - _sumLowTime*_sumLowTime))/_nLowTime : -1; }
 
 bool iRPCCluster::hasDeltaTime() { return _nDeltaTime > 0; }
-float iRPCCluster::deltaTime() { return hasDeltaTime() ? _sumDeltaTime/_nDeltaTime : -1; }
+//float iRPCCluster::deltaTime() { return hasDeltaTime() ? _sumDeltaTime/_nDeltaTime : -1; }
+float iRPCCluster::deltaTime() { return this->highTime() - this->lowTime(); }
 float iRPCCluster::deltaTimeRMS() { return hasDeltaTime() ? std::sqrt(std::max(0.0f, _sumDeltaTime2*_nDeltaTime - _sumDeltaTime*_sumDeltaTime))/_nDeltaTime : -1000; }
 
 bool iRPCCluster::hasY() { return _nY > 0; }

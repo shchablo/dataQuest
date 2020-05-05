@@ -176,7 +176,8 @@ bool iRPCClusterizer::clustering(float thrTime, iRPCHitContainer &hits, iRPCClus
 			}
 			// if minDelta below thresholt (param) fill two first hits in cluster
 			if(minDelta < thrTime) {
-				clusters.push_back(iRPCCluster()); clusters.back().addHit(front->second.at(minI)); 
+				clusters.push_back(iRPCCluster()); 
+        clusters.back().addHit(front->second.at(minI)); 
 				clusters.back().addHit(next->second.at(minNI)); 
 			
 				next->second.erase(next->second.begin() + minNI); used = used + 1;
@@ -270,17 +271,23 @@ iRPCClusterContainer iRPCClusterizer::association(iRPCInfo &info, iRPCClusterCon
     double deltaTime = 0; std::vector<std::pair<int, double>> deltaTimes; // vector<<strip, deltaTime>>
     bool isSplitHR = false; bool isSplitLR = false;
     unsigned int sizeHR = hr.size(); unsigned int sizeLR = lr.size();
-    unsigned int h = 0, l = 0;
+    //unsigned int h = 0, l = 0;
     while(used != nClusters) {
         overlap = 0; overlaps.clear(); deltaTimes.clear();
         sizeHR = hr.size(); sizeLR = lr.size();
-        h = 0; l = 0;
-        while(h < sizeHR && l < sizeLR) {
+        //h = 0; l = 0;
+        //while(h < sizeHR && l < sizeLR) {
+        for(unsigned int h = 0; h < sizeHR; h++) {
+          for(unsigned int l = 0; l < sizeLR; l++) {
             overlap = 0; delta = hr.at(h).highTime() - lr.at(l).lowTime();
             if(delta >= thrDeltaMin && delta <= thrDeltaMax) {
                 for(unsigned int ih = 0; ih < hr.at(h).hits()->size(); ih++) {
                     for(unsigned int il = 0; il < lr.at(l).hits()->size(); il++) {
-                        if(hr.at(h).hits()->at(ih).strip() == lr.at(l).hits()->at(il).strip()) { overlap = overlap + 1; break; }
+                        if(hr.at(h).hits()->at(ih).strip() == lr.at(l).hits()->at(il).strip() 
+                        || (hr.at(h).hits()->at(ih).strip() == lr.at(l).hits()->at(il).strip() + 1) 
+                        || (hr.at(h).hits()->at(ih).strip() == lr.at(l).hits()->at(il).strip() - 1)) 
+                        
+                        { overlap = overlap + 1; break; }
                     }
                 }
             }
@@ -292,7 +299,8 @@ iRPCClusterContainer iRPCClusterizer::association(iRPCInfo &info, iRPCClusterCon
                         (overlap, std::vector<std::pair<unsigned int, unsigned int>>()));
                 overlaps.find(overlap)->second.push_back(std::make_pair(h, l));
             }
-            if(hr.at(h).hits()->size() < lr.at(l).hits()->size()) ++h; else ++l;
+            //if(hr.at(h).hits()->size() < lr.at(l).hits()->size()) ++h; else ++l;
+          } 
         }
         // looking couple with lower time delta
         if(!overlaps.empty()) {

@@ -5,6 +5,10 @@
 LyPeti::LyPeti(std::string mod, std::map<std::string, std::string> params,
                std::vector<std::string> inputs,
                std::vector<std::string> outputs) {
+
+  _check = 0;
+  _check2 = 0;
+  _counter = 0;
   _mod = mod;
   _params = params;
   _inputs = inputs;
@@ -641,32 +645,43 @@ bool LyPeti::offset(std::string mod, std::vector<std::string> *mods,
         }
         if(refStrip != -1) {
           nameTH1s = Form("%d%s%d%s%sTimeProfileOffset", chamber, _strDelim.c_str(), refStrip, _strDelim.c_str(), mods->at(im).c_str()); 
-          double mean = TH1s->find(nameTH1s.c_str())->second.GetMean(); double rms = TH1s->find(nameTH1s.c_str())->second.GetRMS();
+        double mean = TH1s->find(nameTH1s.c_str())->second.GetMean(); 
+				//double max = 0;
+				//for(unsigned int b = TH1s->find(nameTH1s.c_str())->second.GetNbinsX(); b >= 1; b--) {
+				//	if(TH1s->find(nameTH1s.c_str())->second.GetBinContent(b-1) > TH1s->find(nameTH1s.c_str())->second.GetBinContent(b)) {
+				//		mean = TH1s->find(nameTH1s.c_str())->second.GetBinCenter(b-1);
+				//	}
+				//}
+					double rms = TH1s->find(nameTH1s.c_str())->second.GetRMS();
           TF1 *f1 = new TF1("f1", "gaus", mean-nRMS*rms, mean+nRMS*rms);
           TH1s->find(nameTH1s.c_str())->second.Fit("f1", "R");
           refTime = f1->GetParameter(1); errRefTime = f1->GetParError(1);
+          //refTime = mean; 
           delete f1;
         }
-        double averSigma = 0; int an = 0;
-        
         for(int c = 0; c < strips; c++) {
           nameTH1s = Form("%d%s%d%s%sTimeProfileOffset", chamber, _strDelim.c_str(), c, _strDelim.c_str(), mods->at(im).c_str()); 
           auto itStrip = TH1s->find(nameTH1s.c_str());
           if(!(itStrip == TH1s->end())) {
             if(TH1s->find(nameTH1s.c_str())->second.GetEntries() > entries) {
-              double mean = TH1s->find(nameTH1s.c_str())->second.GetMean(); double rms = TH1s->find(nameTH1s.c_str())->second.GetRMS();
+              
+							double mean = TH1s->find(nameTH1s.c_str())->second.GetMean(); 
+							//for(unsigned int b = TH1s->find(nameTH1s.c_str())->second.GetNbinsX(); b >= 1; b--) {
+							//	if(TH1s->find(nameTH1s.c_str())->second.GetBinContent(b-1) > TH1s->find(nameTH1s.c_str())->second.GetBinContent(b)) {
+							//		mean = TH1s->find(nameTH1s.c_str())->second.GetBinCenter(b-1);
+							//	}
+							//}
+							
+							double rms = TH1s->find(nameTH1s.c_str())->second.GetRMS();
               TF1 *f1 = new TF1("f1", "gaus", mean-nRMS*rms, mean+nRMS*rms);
               TH1s->find(nameTH1s.c_str())->second.Fit("f1", "R");
               offSet = f1->GetParameter(1)-refTime; 
-              if(std::abs(offSet) > 10) offSet = 0;
+             	//offSet = mean-refTime; 
+              if(std::abs(offSet) > 50) offSet = 0;
               errOffSet = f1->GetParError(1)+errRefTime; 
               TGEs->find(nameTGEs.c_str())->second->setting(c + chamber, 0, offSet, errOffSet);
-              if( _parser.last(mods->at(im)) == "CB") {
-                averSigma += f1->GetParameter(2);
-                an +=1;
-              }
               if(mods->at(im) == "HR") { 
-                offsetsHR.insert(std::make_pair(c+chamber, offSet));
+								offsetsHR.insert(std::make_pair(c+chamber, offSet));
               }
               if(mods->at(im) == "LR") 
                 offsetsLR.insert(std::make_pair(c+chamber, offSet));
@@ -674,26 +689,6 @@ bool LyPeti::offset(std::string mod, std::vector<std::string> *mods,
             }
           }
         }
-        double RMS = 0;
-        for(int c = 0; c < strips; c++) {
-          nameTH1s = Form("%d%s%d%s%sTimeProfileOffset", chamber, _strDelim.c_str(), c, _strDelim.c_str(), mods->at(im).c_str()); 
-          auto itStrip = TH1s->find(nameTH1s.c_str());
-          if(!(itStrip == TH1s->end())) {
-            if(TH1s->find(nameTH1s.c_str())->second.GetEntries() > entries) {
-              double mean = TH1s->find(nameTH1s.c_str())->second.GetMean(); double rms = TH1s->find(nameTH1s.c_str())->second.GetRMS();
-              TF1 *f1 = new TF1("f1", "gaus", mean-nRMS*rms, mean+nRMS*rms);
-              TH1s->find(nameTH1s.c_str())->second.Fit("f1", "R");
-              offSet = f1->GetParameter(1)-refTime; 
-              if(std::abs(offSet) > 10) offSet = 0;
-              errOffSet = f1->GetParError(1)+errRefTime; 
-              TGEs->find(nameTGEs.c_str())->second->setting(c + chamber, 0, offSet, errOffSet);
-              if( _parser.last(mods->at(im)) == "CB") {
-                RMS += (f1->GetParameter(2) - averSigma/an)*(f1->GetParameter(2) - averSigma/an);
-              }
-            }
-          }
-        }
-        std::cout << "average sigma cluster: " << std::setprecision(5) << averSigma/an << " " << std::sqrt(RMS)/an  << std::endl; 
       }
     }
     event->setTimeOffSetHR(&offsetsHR); 
@@ -735,6 +730,98 @@ bool LyPeti::offset(std::string mod, std::vector<std::string> *mods,
     return false;
   return true;
 }
+bool LyPeti::rate(std::string mod, std::vector<std::string> *mods, 
+                  int run, LyPetiEvent *event, std::map<int, LyPetiAnalysis> *analysis,
+                  DqRoot *dataRoot,
+                  std::map<std::string, DqTG2D*> *TG2Ds, 
+                  std::map<std::string, DqTH1D> *TH1s, 
+                  std::map<std::string, DqTH1D> *TH2s)
+{
+  std::string nameTH2s = ""; std::string titleTH2s = ""; // auto itTH2s = TH2s->find("");
+  std::string nameTH1s = ""; std::string titleTH1s = ""; auto itTH1s = TH1s->find("");
+  std::map<int, double> offsetsHR; std::map<int, double> offsetsLR;
+  if(mod ==  "OFFSET" + _strDelim + "CONFIG" || mod ==  "OFFSET" + _strDelim + "ANALYSIS") {
+    bool isA = true; if(mod ==  "OFFSET" + _strDelim + "CONFIG") isA = false; 
+    // FIRST ANALYSIS BEGIN ------------------------------------------------
+    
+		for(unsigned int ic = 0; ic < event->chambers()->size(); ic++) {
+      int chamber = event->chambers()->at(ic);
+      analysis->find(chamber)->second.setStrips(event->strips(chamber));
+      unsigned int numberOfTrigers = event->trigs(chamber)->size(); // #
+      bool isTrigers = analysis->find(chamber)->second.fillTrigers(numberOfTrigers);
+    	if(isTrigers) {
+        for(unsigned int js = 0; js < event->strips(chamber)->size(); js++) { // Fill raw data with maping. 
+          for(unsigned int jh = 0; jh < event->strips(chamber)->at(js).HR.size(); jh++) {
+            bool isFilterHR = analysis->find(chamber)->second.filters("data_HR", js, jh); 
+            if(isFilterHR)  analysis->find(chamber)->second.fillEvents("data_HR", js, jh); 
+          }
+          
+          for(unsigned int jl = 0; jl < event->strips(chamber)->at(js).LR.size(); jl++) {
+            bool isFilterLR = analysis->find(chamber)->second.filters("data_LR", js, jl); 
+            if(isFilterLR) analysis->find(chamber)->second.fillEvents("data_LR", js, jl); 
+     	  	}
+    	  }
+      }
+      // ANALYSIS PART
+      std::string filters = analysis->find(chamber)->second.filtersStr(); 
+      for(unsigned int im = 0; im < mods->size(); im++) {
+        if(!analysis->find(chamber)->second.skipEvent()) {  
+          analysis->find(chamber)->second.algos(mods->at(im));
+          std::string modParams = analysis->find(chamber)->second.modParamsStr(mods->at(im)); 
+          std::vector<std::pair<double, double>> data = analysis->find(chamber)->second.data(mods->at(im).c_str());
+          for(unsigned int jd = 0; jd < data.size(); jd++) { 
+            nameTH1s = Form("%d%s%d%s%sTimeProfileOffset", chamber, _strDelim.c_str(), (int)data.at(jd).first, _strDelim.c_str(), mods->at(im).c_str()); 
+            itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params); 
+            if(!isA) itTH1s->second.setting(data.at(jd).second); 
+            if(isA) { itTH1s = TH1s->find(nameTH1s); if(!(itTH1s == TH1s->end())) 
+              TH1s->find(nameTH1s.c_str())->second.Fill(data.at(jd).second); }
+          }
+        }
+      }
+    }
+  }
+  if(mod == "CONFIG END") {
+    std::string name;
+    for(unsigned int ic = 0; ic < event->chambers()->size(); ic++) {
+      int chamber = event->chambers()->at(ic);
+      std::string filters = analysis->find(chamber)->second.filtersStr(); 
+      for(auto& it: *TH1s) {
+        for(unsigned int im = 0; im < mods->size(); im++) {
+          std::string modParams = analysis->find(chamber)->second.modParamsStr(mods->at(im)); 
+          if(_parser.last(it.second.GetTitle()) == _parser.last((mods->at(im).c_str()))) {
+            name = Form("%s%s%s%s%s", it.second.GetName(), _strDelim.c_str(), modParams.c_str(), _strDelim.c_str(), filters.c_str()); 
+            it.second.SetTitle(name.c_str()); 
+          }
+        }
+        it.second.setting();
+      }
+      for(auto& it: *TH2s) {
+        for(unsigned int im = 0; im < mods->size(); im++) {
+          std::string modParams = analysis->find(chamber)->second.modParamsStr(mods->at(im)); 
+          if(_parser.last(it.second.GetTitle()) == _parser.last((mods->at(im).c_str()))) {
+            name = Form("%s%s%s%s%s", it.second.GetName(), _strDelim.c_str(), modParams.c_str(), _strDelim.c_str(), filters.c_str()); 
+            it.second.SetTitle(name.c_str()); 
+          }
+        }
+        it.second.setting();
+      }
+    }
+  }
+  if(mod ==  "OFFSET" + _strDelim + "ANALYSIS END") {
+    
+    for(unsigned int ic = 0; ic < event->chambers()->size(); ic++) {
+      int chamber = event->chambers()->at(ic); 
+      std::string filters = analysis->find(chamber)->second.filtersStr(); 
+      for(unsigned int im = 0; im < mods->size(); im++) {
+        analysis->find(chamber)->second.algos(mods->at(im));
+        std::string modParams = analysis->find(chamber)->second.modParamsStr(mods->at(im)); 
+      }
+    }
+  }
+  else
+    return false;
+  return true;
+}
 bool LyPeti::core(std::string mod, std::vector<std::string> *mods, 
                   int run, LyPetiEvent *event, 
                   std::map<int, RoPetiEvent*> *roEvents,
@@ -760,11 +847,22 @@ bool LyPeti::core(std::string mod, std::vector<std::string> *mods,
         
       // TRIGS
       std::vector<double> trigers;
-      for(unsigned int jt = 0; jt < event->trigs(chamber)->size(); jt++) {
+			//if(zevent->trigs(chamber)->size() > 0) {
+  		//	_counter+=1;
+			//}
+			////if((_counter > 395 && _counter < 495))
+			////	break;
+      //bool skip = false;
+			for(unsigned int jt = 0; jt < event->trigs(chamber)->size(); jt++) {
         
+
         trigers.push_back(event->trigs(chamber)->at(jt)->time);
-       
         int boardID = event->trigs(chamber)->at(jt)->head->boardID;
+				if(isA) {  
+    			nameTGEs = Form("%d%strigBCIDgr%d", chamber, _strDelim.c_str(), boardID);   
+        	itTGEs = dataRoot->addDqTGE(nameTGEs, nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
+        	TGEs->find(nameTGEs.c_str())->second->SetPoint(_counter, _counter, event->trigs(chamber)->at(jt)->time);
+				}
         if(isA) {
           int gtc = event->trigs(chamber)->at(jt)->head->gtc; 
           int ch = event->trigs(chamber)->at(jt)->ch; 
@@ -773,7 +871,6 @@ bool LyPeti::core(std::string mod, std::vector<std::string> *mods,
           double coarse = event->trigs(chamber)->at(jt)->coarse; 
           roEvents->find(chamber)->second->addTrig(boardID, gtc, ch, time, fine, coarse);
         }
-        
         int numOfCh = event->trigs(chamber)->at(jt)->head->numOfCh;
         nameTH1s = Form("%d%snum%d%sbuffer", chamber, _strDelim.c_str(), boardID, _strDelim.c_str());
         itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params); 
@@ -781,14 +878,30 @@ bool LyPeti::core(std::string mod, std::vector<std::string> *mods,
         if(isA) { itTH1s = TH1s->find(nameTH1s); if(!(itTH1s == TH1s->end())) 
           TH1s->find(nameTH1s.c_str())->second.Fill(numOfCh); }
         //---
-        int BCID = event->trigs(chamber)->at(jt)->BCID; 
+        
+				int BCID = event->trigs(chamber)->at(jt)->BCID;
+				//if(boardID == 15) {
+				//	if(std::abs(BCID - _check) < 1000) {
+				//		skip = true;
+				//		std::cout << "BCID:=" << _counter << std::endl;
+				//	}
+				//	_check = BCID;
+				//} 
         nameTH1s = Form("%d%snum%d%strigBCID", chamber, _strDelim.c_str(), boardID,_strDelim.c_str());
         itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
         if(!isA) itTH1s->second.setting(BCID);
         if(isA) { itTH1s = TH1s->find(nameTH1s); if(!(itTH1s == TH1s->end())) 
           TH1s->find(nameTH1s.c_str())->second.Fill(BCID); }
+    		
+        if(isA) {  
+    			nameTGEs = Form("%d%strigBCIDgr", chamber,_strDelim.c_str());   
+        	itTGEs = dataRoot->addDqTGE(nameTGEs, nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
+        	TGEs->find(nameTGEs.c_str())->second->SetPoint(_counter, _counter, BCID);
+				}
         //---
       }
+			//if(skip)
+				//break;
       unsigned int numberOfTrigers = event->trigs(chamber)->size(); // #
       nameTH1s = Form("%d%sNumberOfTrigers", chamber, _strDelim.c_str()); 
       itTH1s = dataRoot->addDqTH1D(nameTH1s, nameTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
@@ -867,15 +980,36 @@ bool LyPeti::core(std::string mod, std::vector<std::string> *mods,
 
       std::string filters = analysis->find(chamber)->second.filtersStr(); 
 
-
       for(unsigned int im = 0; im < mods->size(); im++) {
         analysis->find(chamber)->second.algos(mods->at(im));
         if(!analysis->find(chamber)->second.skipEvent()) {  // ANALYSIS PART
           std::string modParams = analysis->find(chamber)->second.modParamsStr(mods->at(im)); 
         
 					std::vector<std::pair<double, double>> data = analysis->find(chamber)->second.data(mods->at(im).c_str());
+          //// resolution
+          //for(unsigned int jd = 0; jd < data.size(); jd++) { 
+          //  for(unsigned int jjd = 0; jjd < data.size(); jjd++) { 
+          //    if(data.at(jd).first == data.at(jjd).first) continue; 
+          //    nameTH1s = Form("d%dch%dto%d%s%sResolution", chamber, int(data.at(jd).first), int(data.at(jjd).first), _strDelim.c_str(), mods->at(im).c_str()); 
+          //    titleTH1s = Form("d%dch%dto%d%s%sResolution", chamber, int(data.at(jd).first), int(data.at(jjd).first), _strDelim.c_str(), mods->at(im).c_str()); 
+          //    itTH1s = dataRoot->addDqTH1D(nameTH1s, titleTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
+          //    if(!isA) itTH1s->second.setting(data.at(jd).second-data.at(jjd).second);
+          //    if(isA) { itTH1s = TH1s->find(nameTH1s); if(!(itTH1s == TH1s->end())) 
+          //      TH1s->find(nameTH1s.c_str())->second.Fill(data.at(jd).second-data.at(jjd).second); }
+          //  }
+          //}
           for(unsigned int jd = 0; jd < data.size(); jd++) { 
-            
+           
+            //// crosstalk
+            //if(mods->at(im).c_str() = "AND") {
+            //if(data.at(jd).second > 0)
+            //nameTH1s = Form("%d%s%stimeProfile", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
+            //titleTH1s = Form("%d%s%s", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
+            //itTH1s = dataRoot->addDqTH1D(nameTH1s, titleTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
+            //if(!isA) itTH1s->second.setting(data.at(jd).second);
+            //if(isA) { itTH1s = TH1s->find(nameTH1s); if(!(itTH1s == TH1s->end())) 
+            //  TH1s->find(nameTH1s.c_str())->second.Fill(data.at(jd).second); }
+            //}
             nameTH1s = Form("%d%s%sstripProfile", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
             titleTH1s = Form("%d%s%s", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
             itTH1s = dataRoot->addDqTH1D(nameTH1s, titleTH1s, TH1s); itTH1s->second.config(nameTH1s, &_params);
@@ -1070,7 +1204,8 @@ bool LyPeti::core(std::string mod, std::vector<std::string> *mods,
 
   }
   if(mod == "CONFIG END") {
-    std::string name;
+    _counter = 0;
+		std::string name;
     for(unsigned int ic = 0; ic < event->chambers()->size(); ic++) {
       int chamber = event->chambers()->at(ic);
       std::string filters = analysis->find(chamber)->second.filtersStr(); 
@@ -1106,33 +1241,33 @@ bool LyPeti::core(std::string mod, std::vector<std::string> *mods,
         analysis->find(chamber)->second.algos(mods->at(im));
         std::string modParams = analysis->find(chamber)->second.modParamsStr(mods->at(im)); 
 
-        // fit 2DProfile strip by strip 
-				std::string strValue; double entries; double nRMS;
-    		bool isRMS = this->findParam("offsetFit&nRMS", &strValue, &_params);
-				if(isRMS) _parser.strToDouble(&nRMS, strValue);
-    		bool isEntries = this->findParam("offsetFit&entries", &strValue, &_params);
-				if(isEntries) _parser.strToDouble(&entries, strValue);
-        nameTH2s = Form("%d%s%sstripTimeProfile", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
-      	auto it = TH2s->find(nameTH2s);
-      	if(!(it == TH2s->end())) {
-					TH1D * projh2X = it->second.ProjectionX();
-        	int nbinsx = projh2X->GetXaxis()->GetNbins();
-        	for(int bin = 0; bin < nbinsx; bin++) {
-						TH1D * proj = it->second.ProjectionX("h", bin, bin, "");
-          	if(proj->GetEntries() > entries) {
-							double mean = proj->GetMean(); double rms = proj->GetRMS();
-          		TF1 *f1 = new TF1("f1", "gaus", mean-nRMS*rms, mean+nRMS*rms);
-              proj->Fit("f1", "R");
-            	double sigma = f1->GetParameter(2); double errSigma = f1->GetParError(2);
-							nameTGEs = Form("%d%s%ssigmas2D", chamber, _strDelim.c_str(), mods->at(im).c_str());   
-        			itTGEs = dataRoot->addDqTGE(nameTGEs, nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
-        			TGEs->find(nameTGEs.c_str())->second->setting(float(bin)/2, 0, sigma, errSigma);
-							delete f1;
-						}
-        	}
-					delete projh2X;
-      	}
-
+        //// fit 2DProfile strip by strip 
+				//std::string strValue; double entries; double nRMS;
+    		//bool isRMS = this->findParam("offsetFit&nRMS", &strValue, &_params);
+				//if(isRMS) _parser.strToDouble(&nRMS, strValue);
+    		//bool isEntries = this->findParam("offsetFit&entries", &strValue, &_params);
+				//if(isEntries) _parser.strToDouble(&entries, strValue);
+        //nameTH2s = Form("%d%s%sstripTimeProfile", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
+      	//auto it = TH2s->find(nameTH2s);
+      	//if(!(it == TH2s->end())) {
+				//	TH1D * projh2Y = it->second.ProjectionY();
+        //	int nbinsx = projh2Y->GetXaxis()->GetNbins();
+        //	for(int bin = 0; bin < nbinsx; bin++) {
+				//		TH1D * proj = it->second.ProjectionX("h", bin, bin, "");
+        //  	if(proj->GetEntries() > entries) {
+				//			double mean = proj->GetMean(); double rms = proj->GetRMS();
+        //  		TF1 *f1 = new TF1("f1", "gaus", mean-nRMS*rms, mean+nRMS*rms);
+        //      proj->Fit("f1", "R");
+        //    	double sigma = f1->GetParameter(2); double errSigma = f1->GetParError(2);
+				//			nameTGEs = Form("%d%s%ssigmas2D", chamber, _strDelim.c_str(), mods->at(im).c_str());   
+        //			itTGEs = dataRoot->addDqTGE(nameTGEs, nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
+        //			TGEs->find(nameTGEs.c_str())->second->setting(float(bin)/2, 0, sigma, errSigma);
+				//			delete f1;
+				//		}
+        //	}
+				//	delete projh2X;
+      	//}
+        
         // CLUSTER STUDY
     		nameTH1s = Form("%d%s%sHRcs", chamber, _strDelim.c_str(), mods->at(im).c_str());
         auto itCluster = TH1s->find(nameTH1s);
@@ -1211,7 +1346,7 @@ bool LyPeti::core(std::string mod, std::vector<std::string> *mods,
         
         std::string modParams = analysis->find(chamber)->second.modParamsStr(mods->at(im)); 
     		double eff = 0; double eEff = 0; bool isEff = analysis->find(chamber)->second.efficiency(&eff, &eEff, mods->at(im).c_str()); 
-    		double eEff_s = 0.006; double eEff_a = 0.0009;
+    		double eEff_s = 0; double eEff_a = 0;
         eEff = std::sqrt(std::pow(eEff,2) + std::pow(eEff_s, 2) + std::pow(eEff_a, 2));
         double eEffh = eEff; if(eEffh + eff > 1) eEffh = 1-eff; 
         double eEffl = eEff; if(eff - eEffl < 0) eEffl = eff; 
@@ -1220,30 +1355,67 @@ bool LyPeti::core(std::string mod, std::vector<std::string> *mods,
     			nameTGAEs = Form("%d%s%sefficiency", chamber, _strDelim.c_str(), mods->at(im).c_str());   
           itTGAEs = dataRoot->addDqTGAE(nameTGAEs, nameTGAEs, TGAEs); itTGAEs->second->config(nameTGAEs, &_params);
           TGAEs->find(nameTGAEs.c_str())->second->setting(value, eValue, eValue, eff, eEffl, eEffh);
+          std::cout << mods->at(im).c_str() << std::setprecision(3) << " " << eff << " " << eEffh << " " << eEffl << std::endl;
     		}
+          nameTH2s = Form("%d%s%sstripTimeProfile", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
+      	  auto it = TH2s->find(nameTH2s); if(!(it == TH2s->end())) {
+			    TH1D * projh2Y = it->second.ProjectionY();
+				  int entries = 0; int entriesWindow = 0;
+          int nStrips = projh2Y->GetXaxis()->GetNbins();
+            for(int is = 0; is < nStrips; is++) {
+				      int dtN = 20; double sDtN = -1; double beg = 0; double end = 0; double zero = -10;
+				      for(int dt = 0; dt < dtN; dt++) {
+				    	  entries = 0; entriesWindow = 0;
+                beg = zero + sDtN * dt; 
+                end = zero + sDtN * dt + std::abs(sDtN);
+				    		TH1D * proj = it->second.ProjectionX("h", is, is, "");
+				    	  TAxis *xaxis = proj->GetXaxis();
+                int nTimes = proj->GetXaxis()->GetNbins();
+            		for(int t = 0; t < nTimes; t++) {
+                  double time = xaxis->GetBinCenter(t);
+                  if(time > beg && time < end)
+                      entriesWindow += proj->GetBinContent(t);
+                  entries += proj->GetBinContent(t);
+                }
 
-        nameTH1s = Form("%d%s%sstripProfile", chamber, _strDelim.c_str(), mods->at(im).c_str()); 
-        int nStrips = TH1s->find(nameTH1s.c_str())->second.GetXaxis()->GetNbins();
-        for(int is = 0; is < nStrips; is++) {
-          double noise = 0; double eNoise = 0; bool isNoise = analysis->find(chamber)->second.noise(&noise, &eNoise, is, TH1s->find(nameTH1s.c_str())->second.GetBinContent(is), mods->at(im).c_str());
-    		  eNoise = 0;
-    		  if(isNoise) {
-    			  double value = analysis->find(chamber)->second.getValue(run); double eValue = 0;
-    			  nameTGEs = Form("%d%s%d%s%srateStrip", chamber, _strDelim.c_str(), is, _strDelim.c_str(), mods->at(im).c_str());   
-            itTGEs = dataRoot->addDqTGE(nameTGEs, nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
-            TGEs->find(nameTGEs.c_str())->second->setting(value, eValue, noise, eNoise);
-    			  nameTG2Ds = Form("%d%s%srateStrips", chamber, _strDelim.c_str(), mods->at(im).c_str());   
-            itTG2Ds = dataRoot->addDqTG2D(nameTG2Ds, nameTG2Ds, TG2Ds); itTG2Ds->second->config(nameTG2Ds, &_params);
-            TG2Ds->find(nameTG2Ds.c_str())->second->setting(is, value, noise);
-    		  }
-        }
+                double noise = 0; double eNoise = 0;
+    		        eNoise = 0;
+				    		noise = 0; eNoise = 0;
+				    		bool isNoise = analysis->find(chamber)->second.noise(&noise, &eNoise, is, entriesWindow*dtN, mods->at(im).c_str());
+				    		if(isNoise) {
+				    			nameTG2Ds = Form("%d%s%s%d%srateMap", chamber, _strDelim.c_str(), mods->at(im).c_str(), run, _strDelim.c_str());   
+                	itTG2Ds = dataRoot->addDqTG2D(nameTG2Ds, nameTG2Ds, TG2Ds); itTG2Ds->second->config(nameTG2Ds, &_params);
+                	double dtime = double((beg+end)/2.0);
+    		          double eff = 0; double eEff = 0; analysis->find(chamber)->second.efficiency(&eff, &eEff, mods->at(im).c_str()); 
+                  TG2Ds->find(nameTG2Ds.c_str())->second->setting(is, dtime, noise);
+				    		}
+				    	}
+                double noise = 0; double eNoise = 0; bool isNoise = analysis->find(chamber)->second.noise(&noise, &eNoise, is, entries, mods->at(im).c_str());
+    		        eNoise = 0;
+    		        if(isNoise) {
+    		    	    double value = analysis->find(chamber)->second.getValue(run); double eValue = 0;
+    		    	    nameTGEs = Form("%d%s%d%s%srateStrip", chamber, _strDelim.c_str(), is, _strDelim.c_str(), mods->at(im).c_str());   
+                  itTGEs = dataRoot->addDqTGE(nameTGEs, nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
+                  TGEs->find(nameTGEs.c_str())->second->setting(value, eValue, noise, eNoise);
+    		    	    
+                  nameTG2Ds = Form("%d%s%srateStrips", chamber, _strDelim.c_str(), mods->at(im).c_str());   
+                  itTG2Ds = dataRoot->addDqTG2D(nameTG2Ds, nameTG2Ds, TG2Ds); itTG2Ds->second->config(nameTG2Ds, &_params);
+                  TG2Ds->find(nameTG2Ds.c_str())->second->setting(is, value, noise);
+
+    		    	    nameTGEs = Form("%d%s%d%s%srateStrips", chamber, _strDelim.c_str(), int(value), _strDelim.c_str(), mods->at(im).c_str());   
+                  itTGEs = dataRoot->addDqTGE(nameTGEs, nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
+                  TGEs->find(nameTGEs.c_str())->second->setting(is, 0, noise/0.95, eNoise);
+                  //std::cout <<  noise << std::endl;
+            	  }
+            }
+          }
         double noise = 0; double eNoise = 0; bool isNoise = analysis->find(chamber)->second.noise(&noise, &eNoise, -1, -1, mods->at(im).c_str());
-    		eNoise = 0;
     		if(isNoise) {
     			double value = analysis->find(chamber)->second.getValue(run); double eValue = 0;
     			nameTGEs = Form("%d%s%srate", chamber, _strDelim.c_str(), mods->at(im).c_str());   
           itTGEs = dataRoot->addDqTGE(nameTGEs, nameTGEs, TGEs); itTGEs->second->config(nameTGEs, &_params);
           TGEs->find(nameTGEs.c_str())->second->setting(value, eValue, noise, eNoise);
+          std::cout <<  noise << " " <<  eNoise << std::endl;
     		}
 
     		nameTH1s = Form("%d%s%smultiplicity", chamber, _strDelim.c_str(), mods->at(im).c_str());

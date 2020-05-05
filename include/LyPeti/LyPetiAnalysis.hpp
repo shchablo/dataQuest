@@ -56,6 +56,8 @@ public:
   bool setParser(DqParser* parser);
   bool setStrips(std::vector<lyBuf::strip>* strips);
 	bool setNumBoards(int numBoards);
+  bool setTimeMinIC(double min); double getTimeMinIC();
+  bool setTimeMaxIC(double max); double getTimeMaxIC();
   
   double getValue(int run);
   int getNumberEvents();
@@ -94,6 +96,8 @@ public:
   bool maxTime(double* time, std::string mod); 
   
   bool filter(std::vector<std::pair<int, int>>* iHR,
+                   std::vector<std::pair<int, int>>* iLR); 
+  bool filterXtalk(std::vector<std::pair<int, int>>* iHR,
                    std::vector<std::pair<int, int>>* iLR); 
   //----------------------------------------------------------------------------
   bool algos(std::string mod);
@@ -139,7 +143,9 @@ public:
   //----------------------------------------------------------------------------
   
 protected:
- 
+
+  int _counter1;  
+  int _counter2;  
   std::map<int, double> _offsets;
   std::map<int, double> _offsetsHR;
   std::map<int, double> _offsetsLR;
