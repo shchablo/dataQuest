@@ -106,9 +106,10 @@ bool DqTH1D::setting()
   }
 
   if(_mod == "rice") { 
-    if(_isSize)
+    if(_isSize) {
       _size = (int)(6*2*pow(_size, 0.333));
       _beg = 1; _end = -1;
+    }
   }
 
   if(_mod == "strips") {

@@ -7,15 +7,26 @@ cmake_minimum_required(VERSION 3.4 FATAL_ERROR)
 
 project(dq LANGUAGES CXX)
 
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_PLATFORM_INDEPENDENT_CODE ON)
+
+
 # MODULE -----------------------------------------------------------------------
+
   list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/modules)
   
   ## CERN_ROOT
-  list(APPEND CMAKE_MODULE_PATH $ENV{ROOTSYS}/etc/cmake/)
-  find_package(ROOT REQUIRED COMPONENTS RIO Net)
-  include("${CMAKE_CURRENT_SOURCE_DIR}/modules/RootNewMacros.cmake")  
-  include_directories(${ROOT_USE_FILE})
-  include_directories(${ROOT_INCLUDE_DIR})
+  #list(APPEND CMAKE_MODULE_PATH $ENV{ROOTSYS}/cmake/)
+  find_package(ROOT CONFIG REQUIRED)
+  set(ROOT_DIR $ENV{ROOTSYS})
+  include("${ROOT_DIR}/cmake/modules/RootNewMacros.cmake")  
+  
+  include("${ROOT_USE_FILE}")
+  
+  #include_directories(${ROOT_USE_FILE})
+  #include_directories(${ROOT_INCLUDE_DIR})
   ROOT_GENERATE_DICTIONARY(G__RoPetiEvent
     ${CMAKE_CURRENT_SOURCE_DIR}/include/RoPetiEvent/RoPetiEvent.h LINKDEF
     ${CMAKE_CURRENT_SOURCE_DIR}/include/RoPetiEvent/RoPetiEventLinkDef.h) 
@@ -23,8 +34,10 @@ project(dq LANGUAGES CXX)
   add_library(RoPetiEvent SHARED
     ${CMAKE_CURRENT_SOURCE_DIR}/src/RoPetiEvent/RoPetiEvent.cxx
     ${CMAKE_CURRENT_SOURCE_DIR}/include/RoPetiEvent/RoPetiEvent.h
-    G__RoPetiEvent)
+    G__RoPetiEvent.cxx)
   ##
+  target_include_directories(RoPetiEvent PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+  target_link_libraries(RoPetiEvent PUBLIC ROOT::Core)
   
   ## ZLIB
     find_package(ZLIB REQUIRED)
@@ -111,9 +124,9 @@ else()
     endif()
   endif()
 endif()
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_PLATFORM_INDEPENDENT_CODE ON)
+#set(CMAKE_CXX_STANDARD_REQUIRED ON)
+#set(CMAKE_CXX_EXTENSIONS OFF)
+#set(CMAKE_PLATFORM_INDEPENDENT_CODE ON)
 
 add_definitions(-Wall -O3)
 

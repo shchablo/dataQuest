@@ -2,6 +2,7 @@
 #define ROPETIEVENT_H
 
 /* ROOT includes */
+#include <TROOT.h>
 #include "TObject.h"
 #include "TClonesArray.h"
 //------------------------------------------------------------------------------

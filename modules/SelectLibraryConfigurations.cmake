@@ -69,3 +69,4 @@ macro( select_library_configurations basename )
         ${basename}_LIBRARY_DEBUG
     )
 endmacro()
+

@@ -23,19 +23,17 @@ example:
 #SYSTEM REQUIREMENTS:
 
   - CMAKE (https://cmake.org/) 
-  - ROOT CERN Library (https://root.cern.ch)
+  - ROOT +6.18 CERN Library (https://root.cern.ch)
   - ZLIB Library (https://zlib.net)
 --------------------------------------------------------------------------------
 
 #HOW TO BUILD:
 
-  <Go to dir: modules/FindROOT.cmake, 
-   Change line 17 with your "path/to/yourROOT".>
   mkdir bin
   mkdir build
   cd build
-  cmake .. or sudo cmake ..
-  make or sudo make (twice)
+  cmake ..
+  make
   cd ../bin
   ./dq --type=...
 --------------------------------------------------------------------------------

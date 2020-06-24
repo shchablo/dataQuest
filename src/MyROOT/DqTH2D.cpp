@@ -165,10 +165,11 @@ bool DqTH2D::setting()
     _endY = _endY + std::abs(_endY-_begY)/_sizeY/2;
   }
   if(_modY == "rice") { 
-    if(_isSizeY)
+    if(_isSizeY) {
       _sizeY = (int)(6*2*pow(_sizeY, 0.333));
       _begY = 1;
       _endY = -1;
+    }
   }
   if(_modY == "strips") {
       _sizeY = std::abs(_endY - _begY) + 1;

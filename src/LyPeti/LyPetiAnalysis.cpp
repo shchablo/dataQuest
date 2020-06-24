@@ -871,7 +871,7 @@ bool LyPetiAnalysis::noise(double* n, double* eN, int strip, int entrie, std::st
     *n = noise/(((std::abs((endWindow-begWindow)))*trigers)*_noiseUnit*_chamberArea);
   else if(trigers != 0 && strip != -1) 
     *n = noise/(((std::abs((endWindow-begWindow)))*trigers)*_noiseUnit*_stripArea);
-  else *n = 0; *eN =  *n/std::sqrt(trigers); 
+  else { *n = 0; *eN =  *n/std::sqrt(trigers); }
   
   // std::cout << std::setprecision(5) << name << " RESULT:" << *n << " N:" << noise << " W: " << std::abs(_endNoise-_begNoise) << " U:" << _noiseUnit <<" T: " << trigers << " Surf:" << _chamberArea << std::endl;  
   return true;
@@ -994,7 +994,8 @@ bool LyPetiAnalysis::maxTime(double* time, std::string mod)
   }
   else
     result = false;
-    return result;
+    
+  return result;
 }
 //------------------------------------------------------------------------------
 
